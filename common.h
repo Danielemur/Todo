@@ -5,7 +5,8 @@
 
 #define COUNTOF(x) (sizeof(x) / sizeof(0[x]))
 
-#define FATAL(x) do {                           \
+#define FATAL(x)                                \
+    do {                                        \
         fprintf(stderror, "%s", (x));           \
         exit(EXIT_FAILURE);                     \
     } while(0)
