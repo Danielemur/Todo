@@ -190,9 +190,9 @@ void event_add_tag(Event *e, const char *tag)
         unsigned i;
         for (i = 0; i < e->ntags && strcmp(e->tags[i], tag) < 0; i++);
         if (i == e->ntags || strcmp(e->tags[i], tag)) {
-            e->tags = realloc(e->tags, ++(e->ntags) * sizeof(e->tags[0]));
-            memmove(&e->tags[i + 1], &e->tags[i], (e->ntags - (i + 1)) * sizeof(e->tags[0]));
-            e->tags[i] = str_dup(tag);
+            void *new_elem;
+            e->tags = add_element(e->tags, &e->ntags, sizeof(e->tags[0]), i, &new_elem);
+            *(char **)new_elem = str_dup(tag);
         }
     }
 }
@@ -218,8 +218,7 @@ void event_remove_tag(Event *e, const char *tag)
 {
     int tag_ind;
     if ((tag_ind = get_tag_index(e, tag)) >= 0) {
-        e->ntags--;
         free(e->tags[tag_ind]);
-        memmove(&e->tags[tag_ind], &e->tags[tag_ind + 1], (e->ntags - tag_ind) * sizeof(e->tags[0]));
+        remove_element(e->tags, &e->ntags, sizeof(e->tags[0]), tag_ind);
     }
 }

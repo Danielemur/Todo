@@ -18,3 +18,21 @@ static char *str_dup(const char *s)
         return ret_str;
     return strcpy(ret_str, s);
 }
+
+static void *add_element(void *base, size_t *nmemb, size_t size, unsigned i, void **new_elem)
+{
+    base = realloc(base, ++(*nmemb) * size);
+    memmove((char *)base + (i + 1) * size,
+            (char *)base + i * size,
+            (*nmemb - (i + 1)) * size);
+    *new_elem = ((char *)base + i * size);
+    return base;
+}
+
+static void remove_element(void *base, size_t *nmemb, size_t size, unsigned i)
+{
+    (*nmemb)--;
+    memmove((char *)base + i * size,
+            (char *)base + (i + 1) * size,
+            (*nmemb - i) * size);
+}
