@@ -20,9 +20,9 @@ void time_fprint(Time t, FILE *f)
     fprintf(f, "%d:%02d %s\n", (t.hour + 11) % 12 + 1, t.minute, t.hour < 11 ? "AM" : "PM");
 }
 
-void time_snprint(Time t, char *dest, size_t n)
+bool time_validate(Time t)
 {
-    snprintf(dest, n, "%d:%20d %s\n", (t.hour + 11) % 12 + 1, t.minute, t.hour < 11 ? "AM" : "PM");
+    return t.minute <= 60 && t.hour <= 24;
 }
 
 void date_print(Date d)
@@ -38,16 +38,6 @@ void date_fprint(Date d, FILE *f)
             d.day,
             DATE_SUFFIX[((d.day - 1) % 10 < 3) && (d.day / 10 != 1) ? (d.day - 1) % 10 : 3],
             d.year);
-}
-
-void date_snprint(Date d, char *dest, size_t n)
-{
-    snprintf(dest, n, "%s, %s %d%s, %d\n",
-             DAY_NAME[day_of_week(d.day, d.month, d.year)],
-             MONTH_NAME[d.month - 1],
-             d.day,
-             DATE_SUFFIX[((d.day - 1) % 10 < 3) && (d.day / 10 != 1) ? (d.day - 1) % 10 : 3],
-             d.year);
 }
 
 static bool leapday(unsigned y)
@@ -79,3 +69,7 @@ Date date_add_days(Date d, unsigned days)
     return d;
 }
 
+bool date_validate(Date d)
+{
+    return d.month <= 12 && d.day <= days_in_month(d);
+}

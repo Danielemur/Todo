@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <stdbool.h>
 
 static const char *MONTH_NAME[] = {
     "January",
@@ -42,12 +43,17 @@ typedef struct Time {
     unsigned minute;
 } Time;
 
+static Date NULL_DATE = {-1, -1, -1};
+static Time NULL_TIME = {-1, -1};
+
 void time_print(Time t);
 void time_fprint(Time t, FILE *f);
-void time_snprint(Time t, char *dest, size_t n);
+
+bool time_validate(Time t);
 
 void date_print(Date d);
 void date_fprint(Date d, FILE *f);
-void date_snprint(Date d, char *dest, size_t n);
 
 Date date_add_days(Date d1, unsigned days);
+
+bool date_validate(Date d);

@@ -1,17 +1,54 @@
 #include "event.h"
 #include "common.h"
 
+static bool priority_validate(Priority p)
+{
+    return p >= LOW && p <= URGENT;
+}
+
+static int strcmp_wrapper(const void *a, const void *b)
+{
+    return strcmp(*((char **)a), *((char **)b));
+}
+
+static void cpy_tags(Event *e, const char *tags[], size_t ntags)
+{
+    e->ntags = ntags;
+    e->tags = malloc(e->ntags * sizeof(e->tags[0]));
+    for (unsigned i = 0; i < e->ntags; i++) {
+        e->tags[i] = str_dup(tags[i]);
+    }
+    qsort(e->tags, e->ntags, sizeof(e->tags[0]), strcmp_wrapper);
+}
+
+static void free_tags(Event *e)
+{
+    if (e->tags != NULL) {
+        for (unsigned i = 0; i < e->ntags; i++) {
+            free(e->tags[i]);
+        }
+        free(e->tags);
+        e->ntags = 0;
+    }
+}
+
 void event_init(Event *e,
                 Date d, Time t,
+                Priority p,
                 const char *sub,
                 const char *loc,
-                const char *det)
+                const char *det,
+                const char *tags[],
+                size_t ntags)
 {
     e->date = d;
     e->time = t;
+    e->priority = priority_validate(p) ? p : -1;
     e->subject = NULL;
     e->location = NULL;
     e->details = NULL;
+    e->tags = NULL;
+    e->ntags = 0;
 
     if (sub && *sub)
         e->subject = str_dup(sub);
@@ -19,58 +56,170 @@ void event_init(Event *e,
         e->location = str_dup(loc);
     if (det && *det)
         e->details = str_dup(det);
+    if (tags && ntags > 0)
+        cpy_tags(e, tags, ntags);
 }
 
 void event_destroy(Event *e)
 {
     free(e->subject);
+    e->subject = NULL;
     free(e->location);
+    e->location = NULL;
     free(e->details);
+    e->details = NULL;
+    free_tags(e);
+    e->tags = NULL;
 }
 
-void event_print(Event e)
+void event_print(Event e, uint8_t flags)
 {
-    event_fprint(e, stdout);
+    event_fprint(e, stdout, flags);
 }
 
-void event_fprint(Event e, FILE *f)
+void event_fprint(Event e, FILE *f, uint8_t flags)
 {
-    Date d = e.date;
+    if (flags & PRINT_DATE && date_validate(e.date)) {
+        date_fprint(e.date, f);
+        fprintf(f, "\n");
+    }
+
+    if (flags & PRINT_TIME && time_validate(e.time))
+        time_fprint(e.time, f);
+
+    if (flags & PRINT_SUBJ && e.subject) {
+        fprintf(f, "%s\n", e.subject);
+        fprintf(f, "\n");
+    }
+
+    if (flags & PRINT_PRTY && priority_validate(e.priority)) {
+        fprintf(f, "Priority:\n");
+        fprintf(f, "%s\n", PRIORITY_TEXT[e.priority]);
+        fprintf(f, "\n");
+    }
+
+    if (flags & PRINT_LCTN && e.location) {
+        fprintf(f, "Location:\n");
+        fprintf(f, "%s\n", e.location);
+        fprintf(f, "\n");
+    }
+
+    if (flags & PRINT_DTLS && e.details) {
+        fprintf(f, "Details:\n");
+        fprintf(f, "%s\n", e.details);
+        fprintf(f, "\n");
+    }
+
+    if (flags & PRINT_TAGS && e.tags && e.ntags > 0) {
+        fprintf(f, "Tags:\n");
+        for (unsigned i = 0; i < e.ntags; i++) {
+            fprintf(f, (i != e.ntags - 1) ? "%s, " : "%s\n", e.tags[i]);
+        }
+        fprintf(f, "\n");
+    }
+
+    fprintf(f, "\n");
 }
 
-void event_snprint(Event e, char *dest, size_t n)
+void event_set_date(Event *e, Date d)
 {
-    
+    if (!date_validate(d))
+        e->date = NULL_DATE;
+    else
+        e->date = d;
 }
 
-void event_update_date(Event *e, Date d)
+void event_set_time(Event *e, Time t)
 {
-    e->date = d;
+    if (!time_validate(t))
+        e->time = NULL_TIME;
+    else
+        e->time = t;
 }
 
-void event_update_time(Event *e, Time t)
+void event_set_priority(Event *e, Priority p)
 {
-    e->time = t;
+    e->priority = -1;
+    if (priority_validate(p))
+        e->priority = p;
 }
 
-void event_update_subject(Event *e, const char *sub)
+void event_set_subject(Event *e, const char *sub)
 {
     if (e->subject)
         free(e->subject);
-    e->subject = str_dup(sub);
+    e->subject = NULL;
+
+    if (sub && *sub)
+        e->subject = str_dup(sub);
 }
 
-void event_update_location(Event *e, const char *loc)
+void event_set_location(Event *e, const char *loc)
 {
     if (e->location)
         free(e->location);
-    e->location = str_dup(loc);
+    e->location = NULL;
+
+    if (loc && *loc)
+        e->location = str_dup(loc);
 }
 
-void event_update_details(Event *e, const char *det)
+void event_set_details(Event *e, const char *det)
 {
     if (e->details)
         free(e->details);
-    e->details = str_dup(det);
+    e->details = NULL;
+
+    if (det && *det)
+        e->details = str_dup(det);
 }
 
+void event_set_tags(Event *e, const char *tags[], size_t ntags)
+{
+    if (e->tags && e->ntags > 0)
+        free(tags);
+    e->tags = NULL;
+
+    if (tags && ntags > 0)
+        cpy_tags(e, tags, ntags);
+}
+
+void event_add_tag(Event *e, const char *tag)
+{
+    if (tag && *tag) {
+        unsigned i;
+        for (i = 0; i < e->ntags && strcmp(e->tags[i], tag) < 0; i++);
+        if (i == e->ntags || strcmp(e->tags[i], tag)) {
+            e->tags = realloc(e->tags, ++(e->ntags) * sizeof(e->tags[0]));
+            memmove(&e->tags[i + 1], &e->tags[i], (e->ntags - (i + 1)) * sizeof(e->tags[0]));
+            e->tags[i] = str_dup(tag);
+        }
+    }
+}
+
+static int get_tag_index(Event *e, const char *tag)
+{
+    int start = 0;
+    size_t size = e->ntags;
+    
+    while (size > 1) {
+        char **offset = &e->tags[start + (size / 2)];
+        if (!strcmp(*offset, tag))
+            return start + (size / 2);
+        bool lt = strcmp(*offset, tag) > 0;
+        size = lt ? size / 2 : size - (size / 2);
+        start = lt ? start : start + (size / 2);
+    }
+
+    return -1;
+}
+
+void event_remove_tag(Event *e, const char *tag)
+{
+    int tag_ind;
+    if ((tag_ind = get_tag_index(e, tag)) >= 0) {
+        e->ntags--;
+        free(e->tags[tag_ind]);
+        memmove(&e->tags[tag_ind], &e->tags[tag_ind + 1], (e->ntags - tag_ind) * sizeof(e->tags[0]));
+    }
+}
