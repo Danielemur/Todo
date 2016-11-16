@@ -20,6 +20,39 @@ void time_fprint(Time t, FILE *f)
     fprintf(f, "%d:%02d %s\n", (t.hour + 11) % 12 + 1, t.minute, t.hour < 11 ? "AM" : "PM");
 }
 
+Time time_from_str(char *str)
+{
+    Time t = {0};
+    sscanf(str, "%d:%d", &t.hour, &t.minute);
+    return t;
+}
+
+Time time_add_minutes(Time t, unsigned minutes)
+{
+    t.minute += minutes;
+    while (t.minute > 59) {
+        t.hour++;
+        if (t.hour > 23)
+            t.hour -= 24;
+        t.minute -= 60;
+    }
+    return t;
+}
+
+Time time_add_hours(Time t, unsigned hours)
+{
+    t.hour += hours;
+    while (t.hour > 24)
+        t.hour -= 24;
+    return t;
+}
+
+int time_compare(Time t1, Time t2)
+{
+
+    return t1.hour != t2.hour ? t1.hour - t2.hour : t1.minute - t2.minute;
+}
+
 bool time_validate(Time t)
 {
     return t.minute <= 60 && t.hour <= 24;
@@ -40,6 +73,13 @@ void date_fprint(Date d, FILE *f)
             d.year);
 }
 
+Date date_from_str(char *str)
+{
+    Date d = {0};
+    sscanf(str, "%d/%d/%d", &d.month, &d.day, &d.year);
+    return d;
+}
+
 static bool leapday(unsigned y)
 {
     return (!(y % 4) && y % 100) || !(y % 400);
@@ -57,7 +97,7 @@ static unsigned days_in_month(Date d)
 Date date_add_days(Date d, unsigned days)
 {
     d.day += days;
-    for (int md = days_in_month(d); d.day > md; md = days_in_month(d)) {
+    for (unsigned md = days_in_month(d); d.day > md; md = days_in_month(d)) {
         d.month++;
         if (d.month > 12) {
             d.year++;
@@ -65,8 +105,14 @@ Date date_add_days(Date d, unsigned days)
         }
         d.day -= md;
     }
-
     return d;
+}
+
+int date_compare(Date d1, Date d2)
+{
+
+    return d1.year != d2.year ? d1.year - d2.year :
+           d1.month != d1.month ? d1.month - d2.month : d1.day - d2.day;
 }
 
 bool date_validate(Date d)

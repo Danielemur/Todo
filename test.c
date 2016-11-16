@@ -1,7 +1,8 @@
 #include "event.h"
 #include "common.h"
+#include "database.h"
 
-int main(void)
+void event_tester()
 {
     Event e;
     event_init(&e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
@@ -52,4 +53,17 @@ int main(void)
     event_print(e, PRINT_ALL);
 
     event_destroy(&e);
+}
+
+int main(int argc, char **argv)
+{
+    if (argc <= 1)
+        return EXIT_FAILURE;
+    FILE *f = fopen(argv[1], "r");
+    if (!f)
+        FATAL("Failed to open file \"%s\"\n", argv[1]);
+
+    Database db;
+    database_load(&db, f);
+    event_print(db.events[0], PRINT_ALL);
 }

@@ -24,9 +24,8 @@ static void cpy_tags(Event *e, const char *tags[], size_t ntags)
 static void free_tags(Event *e)
 {
     if (e->tags != NULL) {
-        for (unsigned i = 0; i < e->ntags; i++) {
+        for (unsigned i = 0; i < e->ntags; i++)
             free(e->tags[i]);
-        }
         free(e->tags);
         e->ntags = 0;
     }
@@ -112,13 +111,18 @@ void event_fprint(Event e, FILE *f, uint8_t flags)
 
     if (flags & PRINT_TAGS && e.tags && e.ntags > 0) {
         fprintf(f, "Tags:\n");
-        for (unsigned i = 0; i < e.ntags; i++) {
+        for (unsigned i = 0; i < e.ntags; i++)
             fprintf(f, (i != e.ntags - 1) ? "%s, " : "%s\n", e.tags[i]);
-        }
         fprintf(f, "\n");
     }
 
     fprintf(f, "\n");
+}
+
+int event_sort_time(Event e1, Event e2)
+{
+    int date_cmp = date_compare(e1.date, e2.date) ;
+    return date_cmp ? date_cmp : time_compare(e1.time, e2.time);
 }
 
 void event_set_date(Event *e, Date d)
@@ -221,4 +225,19 @@ void event_remove_tag(Event *e, const char *tag)
         free(e->tags[tag_ind]);
         remove_element(e->tags, &e->ntags, sizeof(e->tags[0]), tag_ind);
     }
+}
+
+Priority str2priority(char *str)
+{
+    if (!strcmp(str, "low")) {
+        return LOW;
+    } else if (!strcmp(str, "med")) {
+        return MEDIUM;
+    } else if (!strcmp(str, "high")) {
+        return HIGH;
+    } else if (!strcmp(str, "urgent")) {
+        return URGENT;
+    } else {
+        return -1;
+    } 
 }

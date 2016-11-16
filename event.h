@@ -52,6 +52,8 @@ void event_destroy(Event *e);
 void event_print(Event e, uint8_t flags);
 void event_fprint(Event e, FILE *f, uint8_t flags);
 
+int  event_sort_time(Event e1, Event e2);
+
 void event_set_date(Event *e, Date d);
 void event_set_time(Event *e, Time t);
 void event_set_priority(Event *e, Priority p);
@@ -61,3 +63,5 @@ void event_set_details(Event *e, const char *det);
 void event_set_tags(Event *e, const char *tags[], size_t ntags);
 void event_add_tag(Event *e, const char *tag);
 void event_remove_tag(Event *e, const char *tag);
+
+Priority str2priority(char *str);
