@@ -80,7 +80,7 @@ int database_load(Database *db, FILE *f)
 
 int database_save(Database *db, FILE *f)
 {
-    return 0;
+    return 0; //todo
 }
 
 void database_add_event(Database *db, Event e)
@@ -94,7 +94,27 @@ void database_add_event(Database *db, Event e)
 
 void database_remove_event(Database *db, Event e)
 {
+    //todo
     //event_destroy(db->events[i]);
     //remove_element(db->events, &db->count, sizeof(db->events[0]), i);
 }
 
+int database_query_date(Database *db, Date date, Event **events, size_t *size)
+{
+    if (!events || !date_validate(date))
+        return -1;
+
+    *events = NULL;
+    *size = 0;
+
+    for (unsigned i = 0; i < db->count; i++) {
+        if (!date_compare(db->events[i].date, date)) {
+            if ((*events = realloc(*events, ++*size * sizeof((*events)[0]))) == NULL)
+                return -1;
+            (*events)[*size - 1] = db->events[i];
+        } else if(date_compare(db->events[i].date, date) > 0)
+            break;
+    }
+
+    return 0;
+}
