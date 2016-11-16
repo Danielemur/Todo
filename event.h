@@ -51,6 +51,8 @@ void event_destroy(Event *e);
 
 void event_print(Event e, uint8_t flags);
 void event_fprint(Event e, FILE *f, uint8_t flags);
+void event_print_arr(Event *e, size_t n, uint8_t flags);
+void event_fprint_arr(Event *e, size_t n, FILE *f, uint8_t flags);
 
 int  event_sort_time(Event e1, Event e2);
 

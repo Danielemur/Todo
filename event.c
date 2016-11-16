@@ -121,6 +121,23 @@ void event_fprint(Event e, FILE *f, uint8_t flags)
     fprintf(f, "\n");
 }
 
+void event_print_arr(Event *e, size_t n, uint8_t flags)
+{
+    event_fprint_arr(e, n, stdout, flags);
+}
+
+void event_fprint_arr(Event *e, size_t n, FILE *f, uint8_t flags)
+{
+    Date last_date = {0};
+    for (unsigned i = 0; i < n; i++) {
+        if (!date_compare(e[i].date, last_date))
+            flags &= ~PRINT_DATE;
+        else
+            last_date = e[i].date;
+        event_fprint(e[i], f, flags);
+    }
+}
+
 int event_sort_time(Event e1, Event e2)
 {
     int date_cmp = date_compare(e1.date, e2.date);
