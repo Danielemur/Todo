@@ -78,6 +78,7 @@ void event_print(Event e, uint8_t flags)
 
 void event_fprint(Event e, FILE *f, uint8_t flags)
 {
+
     if (flags & PRINT_DATE && date_validate(e.date)) {
         fprintf(f, "\n");
         date_fprint(e.date, f);
@@ -206,7 +207,7 @@ static int get_tag_index(Event *e, const char *tag)
 {
     int start = 0;
     size_t size = e->ntags;
-    
+
     while (size > 1) {
         char **offset = &e->tags[start + (size / 2)];
         if (!strcmp(*offset, tag))
@@ -240,5 +241,5 @@ Priority str2priority(char *str)
         return URGENT;
     } else {
         return -1;
-    } 
+    }
 }

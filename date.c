@@ -92,7 +92,7 @@ static bool leapday(unsigned y)
 static unsigned days_in_month(Date d)
 {
     unsigned retval = DAYS_IN_MONTH[d.month - 1];
-    
+
     if (d.month == 2 && leapday(d.year))
         retval++;
     return retval;

@@ -20,7 +20,7 @@ typedef struct Event {
 } Event;
 
 typedef struct Database {
-    
+
 } Database;
 
 /* database transfer to/from file */

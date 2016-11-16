@@ -9,7 +9,7 @@
 
 #define FATAL(args...)                          \
     do {                                        \
-        fprintf(stderr, args);                \
+        fprintf(stderr, args);                  \
         exit(EXIT_FAILURE);                     \
     } while(0)
 

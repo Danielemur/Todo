@@ -17,27 +17,27 @@ static int read_event(Event *e, char *line)
     if ((date = csv_next_tok(&line)) != NULL)
         event_set_date(e, date_from_str(date));
     else return -1;
-    
+
     if ((time = csv_next_tok(&line)) != NULL)
         event_set_time(e, time_from_str(time));
     else return -1;
-    
+
     if ((priority = csv_next_tok(&line)) != NULL)
         event_set_priority(e, str2priority(priority));
     else return -1;
-    
+
     if ((subject = csv_next_tok(&line)) != NULL)
         event_set_subject(e, subject);
     else return -1;
-    
+
     if ((location = csv_next_tok(&line)) != NULL)
         event_set_location(e, location);
     else return -1;
-    
+
     if ((details = csv_next_tok(&line)) != NULL)
         event_set_details(e, details);
     else return -1;
-    
+
     while (*line) {
         tag = csv_next_tok(&line);
         if (tag == NULL)
@@ -51,7 +51,7 @@ static int read_event(Event *e, char *line)
 int database_load(Database *db, FILE *f)
 {
     database_init(db);
-    
+
     unsigned line_no = 0;
     size_t size = 0;
     char *line = NULL;

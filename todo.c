@@ -44,7 +44,7 @@ void interactive_mode()
         if (!err)
             puts("Error: command returned 0");
 
-    }    
+    }
 }
 
 int main(int argc, char **argv)

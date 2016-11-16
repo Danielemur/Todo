@@ -16,7 +16,7 @@ char *csv_next_tok(char **line)
     const bool dqted = **line == '"';
     *line += dqted;
     char *start = *line;
-    
+
     for (; dqted || !term_val(**line); (*line)++) {
         if (dqted) {
             if (**line == '"') {
