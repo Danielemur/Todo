@@ -17,6 +17,8 @@ void time_print(Time t)
 
 void time_fprint(Time t, FILE *f)
 {
+    if (!time_validate(t))
+        fprintf(f, "Invalid time!\n");
     fprintf(f, "%d:%02d %s\n", (t.hour + 11) % 12 + 1, t.minute, t.hour < 11 ? "AM" : "PM");
 }
 
@@ -65,6 +67,8 @@ void date_print(Date d)
 
 void date_fprint(Date d, FILE *f)
 {
+    if (!date_validate(d))
+        fprintf(f, "Invalid date!\n");
     fprintf(f, "%s, %s %d%s, %d\n",
             DAY_NAME[day_of_week(d.day, d.month, d.year)],
             MONTH_NAME[d.month - 1],

@@ -10,11 +10,8 @@ static inline bool term_val(char c)
 
 char *csv_next_tok(char **line)
 {
-    if (!line || !*line)
+    if (!line || !*line || !**line)
         return NULL;
-
-    if (!**line)
-        return *line;
 
     const bool dqted = **line == '"';
     *line += dqted;
@@ -38,9 +35,7 @@ char *csv_next_tok(char **line)
         }
     }
 
-    if (**line == ',' && (*(*line + 1) == '\n' || *(*line + 1) == '\0'))
-        return NULL;
-    else if (**line == ',' || **line == '\n') {
+    if (**line == ',' || **line == '\n') {
         **line = '\0';
         (*line)++;
     }

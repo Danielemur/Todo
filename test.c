@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "event.h"
 #include "common.h"
 #include "database.h"
@@ -64,6 +66,15 @@ int main(int argc, char **argv)
         FATAL("Failed to open file \"%s\"\n", argv[1]);
 
     Database db;
-    database_load(&db, f);
-    event_print(db.events[0], PRINT_ALL);
+    if (database_load(&db, f) != -1) {
+        Date last_date = {0};
+        for (unsigned i = 0; i < db.count; i++) {
+            uint8_t flags = PRINT_ALL;
+            if (!date_compare(db.events[i].date, last_date))
+                flags ^= PRINT_DATE;
+            else
+                last_date = db.events[i].date;
+            event_print(db.events[i], flags);
+        }
+    }
 }
