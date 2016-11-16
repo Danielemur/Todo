@@ -123,7 +123,7 @@ void event_fprint(Event e, FILE *f, uint8_t flags)
 
 int event_sort_time(Event e1, Event e2)
 {
-    int date_cmp = date_compare(e1.date, e2.date) ;
+    int date_cmp = date_compare(e1.date, e2.date);
     return date_cmp ? date_cmp : time_compare(e1.time, e2.time);
 }
 

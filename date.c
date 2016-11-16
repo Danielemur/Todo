@@ -116,7 +116,7 @@ int date_compare(Date d1, Date d2)
 {
 
     return d1.year != d2.year ? d1.year - d2.year :
-           d1.month != d1.month ? d1.month - d2.month : d1.day - d2.day;
+           d1.month != d2.month ? d1.month - d2.month : d1.day - d2.day;
 }
 
 bool date_validate(Date d)
