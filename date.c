@@ -51,13 +51,19 @@ Time time_add_hours(Time t, unsigned hours)
 
 int time_compare(Time t1, Time t2)
 {
-
+    if (time_is_null(t1) || time_is_null(t2))
+        return time_is_null(t2) - time_is_null(t1);
     return t1.hour != t2.hour ? t1.hour - t2.hour : t1.minute - t2.minute;
 }
 
 bool time_validate(Time t)
 {
     return t.minute <= 60 && t.hour <= 24;
+}
+
+bool time_is_null(Time t)
+{
+    return t.hour == -1 && t.minute == -1;
 }
 
 void date_print(Date d)
@@ -114,7 +120,8 @@ Date date_add_days(Date d, unsigned days)
 
 int date_compare(Date d1, Date d2)
 {
-
+    if (date_is_null(d1) || date_is_null(d2))
+        return date_is_null(d2) - date_is_null(d1);
     return d1.year != d2.year ? d1.year - d2.year :
            d1.month != d2.month ? d1.month - d2.month : d1.day - d2.day;
 }
@@ -122,4 +129,9 @@ int date_compare(Date d1, Date d2)
 bool date_validate(Date d)
 {
     return d.month <= 12 && d.day <= days_in_month(d);
+}
+
+bool date_is_null(Date d)
+{
+    return d.year == -1 && t.month == -1 && t.day == -1;
 }
