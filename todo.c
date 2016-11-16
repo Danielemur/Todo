@@ -75,7 +75,8 @@ void interactive_mode(Database *db)
             } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
                 exit(EXIT_SUCCESS);
             } else {
-                fprintf(stderr, "Unrecognised token \"%s\"", tok);
+                if (*tok)
+                    fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
                 break;
             }
         }
