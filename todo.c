@@ -38,6 +38,8 @@ void interactive_mode(Database *db)
 
         if (tok == NULL) {
             continue;
+        } else if (!strcmp(tok, "all")) {
+            event_print_arr(db->events, db->count, PRINT_ALL);
         } else if (!strcmp(tok, "today")) {
             if (database_query_date(db, get_current_date(), &events, &size) != -1) {
                 event_print_arr(events, size, PRINT_ALL);
@@ -51,9 +53,9 @@ void interactive_mode(Database *db)
                                     &events, &size) != -1) {
                 event_print_arr(events, size, PRINT_ALL);
                 free(events);
-                free(tok);
-                continue;
             }
+            free(tok);
+            continue;
         } else if (!strcmp(tok, "tag")) {
             free(tok);
             tok = next_tok(&remaining);
