@@ -3,6 +3,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#include "common.h"
+
 static inline bool term_val(char c)
 {
     return c == ',' || c == '\0' || c == '\n';
@@ -40,7 +42,10 @@ char *csv_next_tok(char **line)
         (*line)++;
     }
 
-    return start;
+    if (strsubct(start, "\"\"") > 0)
+        return strrepl(start, "\"\"", "\"");
+    else
+        return str_dup(start);
 }
 
 long csv_get_line(char **lineptr, size_t *n, FILE *stream)

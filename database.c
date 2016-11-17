@@ -14,28 +14,40 @@ static int read_event(Event *e, char *line)
     event_init(e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
     char *date, *time, *priority, *subject, *location, *details, *tag;
 
-    if ((date = csv_next_tok(&line)) != NULL)
+    if ((date = csv_next_tok(&line)) != NULL) {
         event_set_date(e, date_from_str(date));
+        free(date);
+    }
     else return -1;
 
-    if ((time = csv_next_tok(&line)) != NULL)
+    if ((time = csv_next_tok(&line)) != NULL) {
         event_set_time(e, time_from_str(time));
+        free(time);
+    }
     else return -1;
 
-    if ((priority = csv_next_tok(&line)) != NULL)
+    if ((priority = csv_next_tok(&line)) != NULL) {
         event_set_priority(e, str2priority(priority));
+        free(priority);
+    }
     else return -1;
 
-    if ((subject = csv_next_tok(&line)) != NULL)
+    if ((subject = csv_next_tok(&line)) != NULL) {
         event_set_subject(e, subject);
+        free(subject);
+    }
     else return -1;
 
-    if ((location = csv_next_tok(&line)) != NULL)
+    if ((location = csv_next_tok(&line)) != NULL) {
         event_set_location(e, location);
+        free(location);
+    }
     else return -1;
 
-    if ((details = csv_next_tok(&line)) != NULL)
+    if ((details = csv_next_tok(&line)) != NULL) {
         event_set_details(e, details);
+        free(details);
+    }
     else return -1;
 
     while (*line) {
@@ -43,6 +55,7 @@ static int read_event(Event *e, char *line)
         if (tag == NULL)
             return -1;
         event_add_tag(e, tag);
+        free(tag);
     }
 
     return 0;
