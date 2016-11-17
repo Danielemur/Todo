@@ -65,5 +65,6 @@ void event_set_details(Event *e, const char *det);
 void event_set_tags(Event *e, const char *tags[], size_t ntags);
 void event_add_tag(Event *e, const char *tag);
 void event_remove_tag(Event *e, const char *tag);
+bool event_contains_tag(Event e, const char *tag);
 
 Priority str2priority(char *str);

@@ -220,18 +220,18 @@ void event_add_tag(Event *e, const char *tag)
     }
 }
 
-static int get_tag_index(Event *e, const char *tag)
+static int get_tag_index(Event e, const char *tag)
 {
     int start = 0;
-    size_t size = e->ntags;
+    size_t size = e.ntags;
 
-    while (size > 1) {
-        char **offset = &e->tags[start + (size / 2)];
+    while (size >= 1) {
+        char **offset = &e.tags[start + (size / 2)];
         if (!strcmp(*offset, tag))
             return start + (size / 2);
         bool lt = strcmp(*offset, tag) > 0;
-        size = lt ? size / 2 : size - (size / 2);
         start = lt ? start : start + (size / 2);
+        size = lt ? size / 2 : size - ((size + 1) / 2);
     }
 
     return -1;
@@ -240,10 +240,15 @@ static int get_tag_index(Event *e, const char *tag)
 void event_remove_tag(Event *e, const char *tag)
 {
     int tag_ind;
-    if ((tag_ind = get_tag_index(e, tag)) >= 0) {
+    if ((tag_ind = get_tag_index(*e, tag)) >= 0) {
         free(e->tags[tag_ind]);
         remove_element(e->tags, &e->ntags, sizeof(e->tags[0]), tag_ind);
     }
+}
+
+bool event_contains_tag(Event e, const char *tag)
+{
+    return get_tag_index(e, tag) != -1;
 }
 
 Priority str2priority(char *str)

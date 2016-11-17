@@ -131,3 +131,22 @@ int database_query_date(Database *db, Date date, Event **events, size_t *size)
 
     return 0;
 }
+
+int database_query_tag(Database *db, const char *tag, Event **events, size_t *size)
+{
+    if (!events || !tag || !*tag)
+        return -1;
+
+    *events = NULL;
+    *size = 0;
+
+    for (unsigned i = 0; i < db->count; i++) {
+        if (event_contains_tag(db->events[i], tag)) {
+            if ((*events = realloc(*events, ++*size * sizeof((*events)[0]))) == NULL)
+                return -1;
+            (*events)[*size - 1] = db->events[i];
+        }
+    }
+
+    return 0;
+}

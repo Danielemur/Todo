@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <ctype.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -21,24 +20,6 @@ static Time get_current_time()
     return (Time){time->tm_hour, time->tm_min};
 }
 
-static char *next_tok(char **line)
-{
-    if (!line || !*line || !**line)
-        return NULL;
-
-    for (; isspace(**line); (*line)++)
-        if (!**line)
-            return NULL;
-    char *start = *line;
-    for (; !isspace(**line); (*line)++)
-        if (!**line)
-            return start;
-
-    **line = '\0';
-    (*line)++;
-    return start;
-}
-
 void interactive_mode(Database *db)
 {
     char *tok, *remaining, *line = NULL;
@@ -53,32 +34,42 @@ void interactive_mode(Database *db)
             FATAL("Failed to read from stdin!");
 
         remaining = line;
+        tok = next_tok(&remaining);
 
-        while (*remaining) {
-            tok = next_tok(&remaining);
-
-            if (tok == NULL)
-                break;
-
-            if (!strcmp(tok, "today")) {
-                if (database_query_date(db, get_current_date(), &events, &size) != -1) {
-                    event_print_arr(events, size, PRINT_ALL);
-                    free(events);
-                }
-            } else if (!strcmp(tok, "tomorrow")) {
-                if (database_query_date(db,
-                                        date_add_days(get_current_date(), 1),
-                                        &events, &size) != -1) {
-                    event_print_arr(events, size, PRINT_ALL);
-                    free(events);
-                }
-            } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
-                exit(EXIT_SUCCESS);
-            } else {
-                if (*tok)
-                    fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
-                break;
+        if (tok == NULL) {
+            continue;
+        } else if (!strcmp(tok, "today")) {
+            if (database_query_date(db, get_current_date(), &events, &size) != -1) {
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+                free(tok);
+                continue;
             }
+        } else if (!strcmp(tok, "tomorrow")) {
+            if (database_query_date(db,
+                                    date_add_days(get_current_date(), 1),
+                                    &events, &size) != -1) {
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+                free(tok);
+                continue;
+            }
+        } else if (!strcmp(tok, "tag")) {
+            free(tok);
+            tok = next_tok(&remaining);
+            char *noqt = rmqt(tok);
+            if (database_query_tag(db, noqt, &events, &size) != -1) {
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+                free(tok);
+                continue;
+            }
+        } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
+            exit(EXIT_SUCCESS);
+        } else {
+            if (*tok)
+                fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            continue;
         }
     }
 }

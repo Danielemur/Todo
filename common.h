@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #define COUNTOF(x) (sizeof(x) / sizeof(0[x]))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -43,13 +44,43 @@ static char *strrepl(const char *str, const char *find, const char *repl)
         str = strcpy(retstr, str);
         while (str = strstr(str, find)) {
             char *start = (char *)str + flen;
-            memmove(start + diff, start, strlen(start));
+            size_t sz_rem = strlen(start);
+            memmove(start + diff, start, sz_rem);
             strncpy((char *)str, repl, rlen);
+            *(start + diff + sz_rem) = '\0';
             str += rlen;
         }
         return retstr;
     }
     return NULL;
+}
+
+static char *next_tok(char **line)
+{
+    if (!line || !*line || !**line)
+        return NULL;
+
+    for (; isspace(**line); (*line)++)
+        if (!**line)
+            return NULL;
+    char *start = *line;
+    for (; !isspace(**line); (*line)++)
+        if (!**line)
+            return start;
+
+    **line = '\0';
+    (*line)++;
+    return str_dup(start);
+}
+
+static char *rmqt(char *str)
+{
+    if (*str == '"' && str[strlen(str) - 1] == '"') {
+        str[strlen(str) - 1] = '\0';
+        return str + 1;
+    } else {
+        return str;
+    }
 }
 
 static void *add_element(void *base, size_t *nmemb, size_t size, unsigned i, void **new_elem)
