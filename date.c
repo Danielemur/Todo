@@ -118,6 +118,21 @@ Date date_add_days(Date d, unsigned days)
     return d;
 }
 
+Date date_sub_days(Date d, unsigned days)
+{
+    while (days >= d.day) {
+        d.month--;
+        if (d.month <= 0) {
+            d.year--;
+            d.month = 12;
+        }
+        days -= d.day;
+        d.day = days_in_month(d);
+    }
+    d.day -= days;
+    return d;
+}
+
 int date_compare(Date d1, Date d2)
 {
     if (date_is_null(d1) || date_is_null(d2))

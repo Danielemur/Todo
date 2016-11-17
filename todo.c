@@ -56,6 +56,15 @@ void interactive_mode(Database *db)
             }
             free(tok);
             continue;
+        } else if (!strcmp(tok, "yesterday")) {
+            if (database_query_date(db,
+                                    date_sub_days(get_current_date(), 1),
+                                    &events, &size) != -1) {
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+            }
+            free(tok);
+            continue;
         } else if (!strcmp(tok, "date")) {
             free(tok);
             tok = next_tok(&remaining);

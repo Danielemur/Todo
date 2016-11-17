@@ -59,6 +59,7 @@ void date_print(Date d);
 void date_fprint(Date d, FILE *f);
 Date date_from_str(char *str);
 Date date_add_days(Date d, unsigned days);
+Date date_sub_days(Date d, unsigned days);
 int date_compare(Date d1, Date d2);
 bool date_validate(Date d);
 bool date_is_null(Date d);
