@@ -56,6 +56,15 @@ void interactive_mode(Database *db)
             }
             free(tok);
             continue;
+        } else if (!strcmp(tok, "date")) {
+            free(tok);
+            tok = next_tok(&remaining);
+            if (database_query_date(db, date_from_str(tok), &events, &size) != -1) {
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+            }
+            free(tok);
+            continue;
         } else if (!strcmp(tok, "tag")) {
             free(tok);
             tok = next_tok(&remaining);
