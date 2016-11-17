@@ -133,5 +133,5 @@ bool date_validate(Date d)
 
 bool date_is_null(Date d)
 {
-    return d.year == -1 && t.month == -1 && t.day == -1;
+    return d.year == -1 && d.month == -1 && d.day == -1;
 }
