@@ -14,15 +14,15 @@
         exit(EXIT_FAILURE);                     \
     } while(0)
 
-static char *str_dup(const char *s)
+static char *str_dup(const char *s) //allocates new string
 {
     char *ret_str = malloc(strlen(s) + 1);
-    if (ret_str == NULL)
+    if (!ret_str)
         return ret_str;
     return strcpy(ret_str, s);
 }
 
-static unsigned strsubct(const char *str, const char *sub)
+static unsigned strsubct(const char *str, const char *sub) //no side effects
 {
     unsigned count = 0;
     if (str && *str && sub && *sub) {
@@ -34,13 +34,13 @@ static unsigned strsubct(const char *str, const char *sub)
     return count;
 }
 
-static char *strrepl(const char *str, const char *find, const char *repl)
+static char *strrepl(const char *str, const char *find, const char *repl) //allocates new string
 {
     if (str && *str && find && *find && repl) {
         int flen = strlen(find);
         int rlen = strlen(repl);
         int diff = rlen - flen;
-        char *retstr = malloc(strlen(str) + MAX(0, diff * strsubct(str, find)));
+        char *retstr = malloc(strlen(str) + 1 + MAX(0, diff * strsubct(str, find)));
         str = strcpy(retstr, str);
         while (str = strstr(str, find)) {
             char *start = (char *)str + flen;
@@ -55,7 +55,7 @@ static char *strrepl(const char *str, const char *find, const char *repl)
     return NULL;
 }
 
-static char *next_tok(char **line)
+static char *next_tok(char **line) //modifies *line, copies token
 {
     if (!line || !*line || !**line)
         return NULL;
@@ -73,14 +73,29 @@ static char *next_tok(char **line)
     return str_dup(start);
 }
 
-static char *rmqt(char *str)
+static char *rmqt(char *str) //allocates new string
 {
     if (*str == '"' && str[strlen(str) - 1] == '"') {
-        str[strlen(str) - 1] = '\0';
-        return str + 1;
+        char *ret = malloc(strlen(str) - 1);
+        strncpy(ret, str + 1, strlen(str) - 1);
+        ret[strlen(str) - 2] = '\0';
+        return ret;
     } else {
         return str;
     }
+}
+
+static char *addqt(char *str) //allocates new string
+{
+    if (!str)
+        return str;
+    char *ret = malloc(strlen(str) + 3);
+    strcpy(ret + 1, str);
+    ret[0] = '\"';
+    size_t size = strlen(ret);
+    ret[size] = '\"';
+    ret[size + 1] = '\0';
+    return ret;
 }
 
 static void *add_element(void *base, size_t *nmemb, size_t size, unsigned i, void **new_elem)

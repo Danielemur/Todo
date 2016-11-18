@@ -36,7 +36,7 @@ void interactive_mode(Database *db)
         remaining = line;
         tok = next_tok(&remaining);
 
-        if (tok == NULL) {
+        if (!tok) {
             continue;
         } else if (!strcmp(tok, "all")) {
             event_print_arr(db->events, db->count, PRINT_ALL);
@@ -97,7 +97,7 @@ void interactive_mode(Database *db)
 static FILE *get_default_file(void)
 {
     char *home = getenv("HOME");
-    if (home == NULL)
+    if (!home)
         exit(EXIT_FAILURE);
 
     char *path = "/.dbtodo";
@@ -107,7 +107,7 @@ static FILE *get_default_file(void)
 
     FILE *f = fopen(fullpath, "r");
     free(fullpath);
-    if (f == NULL)
+    if (!f)
         exit(EXIT_FAILURE);
     else
         return f;

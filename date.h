@@ -46,20 +46,22 @@ typedef struct Time {
 static Date NULL_DATE = {-1, -1, -1};
 static Time NULL_TIME = {-1, -1};
 
-void time_print(Time t);
-void time_fprint(Time t, FILE *f);
-Time time_from_str(char *str);
-Time time_add_minutes(Time t, unsigned minutes);
-Time time_add_hours(Time t, unsigned hours);
-int  time_compare(Time t1, Time t2);
-bool time_validate(Time t);
-bool time_is_null(Time t);
+void  time_print(Time t);
+void  time_fprint(Time t, FILE *f);
+Time  time_from_str(char *str);
+char *time_to_str(Time t);
+Time  time_add_minutes(Time t, unsigned minutes);
+Time  time_add_hours(Time t, unsigned hours);
+int   time_compare(Time t1, Time t2);
+bool  time_validate(Time t);
+bool  time_is_null(Time t);
 
-void date_print(Date d);
-void date_fprint(Date d, FILE *f);
-Date date_from_str(char *str);
-Date date_add_days(Date d, unsigned days);
-Date date_sub_days(Date d, unsigned days);
-int date_compare(Date d1, Date d2);
-bool date_validate(Date d);
-bool date_is_null(Date d);
+void  date_print(Date d);
+void  date_fprint(Date d, FILE *f);
+Date  date_from_str(char *str);
+char *date_from_str(Date d);
+Date  date_add_days(Date d, unsigned days);
+Date  date_sub_days(Date d, unsigned days);
+int   date_compare(Date d1, Date d2);
+bool  date_validate(Date d);
+bool  date_is_null(Date d);

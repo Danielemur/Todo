@@ -19,14 +19,27 @@ void time_fprint(Time t, FILE *f)
 {
     if (!time_validate(t))
         fprintf(f, "Invalid time!\n");
-    fprintf(f, "%d:%02d %s\n", (t.hour + 11) % 12 + 1, t.minute, t.hour < 11 ? "AM" : "PM");
+    fprintf(f, "%u:%02u %s\n", (t.hour + 11) % 12 + 1, t.minute, t.hour < 11 ? "AM" : "PM");
 }
 
 Time time_from_str(char *str)
 {
     Time t = {0};
-    sscanf(str, "%d:%d", &t.hour, &t.minute);
-    return t;
+    if (sscanf(str, "%u:%u", &t.hour, &t.minute) == 2)
+        return t;
+    else
+        return NULL_TIME;
+}
+
+char *time_to_str(Time t)
+{
+    if (!time_validate(t))
+        return str_dup("Invalid time!");
+    else {
+        char *ret = malloc(6);
+        sprintf(ret, "%02u:%02u", (t.hour + 11) % 12 + 1, t.minute);
+        return ret;
+    }
 }
 
 Time time_add_minutes(Time t, unsigned minutes)
@@ -75,7 +88,7 @@ void date_fprint(Date d, FILE *f)
 {
     if (!date_validate(d))
         fprintf(f, "Invalid date!\n");
-    fprintf(f, "%s, %s %d%s, %d\n",
+    fprintf(f, "%s, %s %u%s, %u\n",
             DAY_NAME[day_of_week(d.day, d.month, d.year)],
             MONTH_NAME[d.month - 1],
             d.day,
@@ -86,8 +99,21 @@ void date_fprint(Date d, FILE *f)
 Date date_from_str(char *str)
 {
     Date d = {0};
-    sscanf(str, "%d/%d/%d", &d.month, &d.day, &d.year);
-    return d;
+    if (sscanf(str, "%u/%u/%u", &d.month, &d.day, &d.year) == 3)
+        return d;
+    else
+        return NULL_DATE;
+}
+
+char *date_to_str(Date d)
+{
+    if (!date_validate(d))
+        return str_dup("Invalid date!");
+    else {
+        char *ret = malloc(d.year);
+        sprintf(ret, "%02u/%02u/%04u", (t.hour + 11) % 12 + 1, t.minute);
+        return ret;
+    }
 }
 
 static bool leapday(unsigned y)

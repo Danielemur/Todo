@@ -5,6 +5,28 @@
 
 #include "common.h"
 
+long csv_cat_tok(char **line, size_t *size, const char *tok)
+{
+    if (!line || !size)
+        return -1;
+
+    tok = strrepl(tok, "\"", "\"\"");
+    char *free = tok;
+    tok = addqt(tok);
+    free(free);
+
+    size_t new_size = *size + strlen(tok) + (!*size ? 1 : 2);
+    *line = realloc(*line, new_size);
+
+    if (!*size)
+        (*line)[0] = '\0';
+    else
+        strcat(*line, ",");
+
+    *size = new_size;
+    strcat(*line, tok);
+}
+
 static inline bool term_val(char c)
 {
     return c == ',' || c == '\0' || c == '\n';
@@ -42,17 +64,14 @@ char *csv_next_tok(char **line)
         (*line)++;
     }
 
-    if (strsubct(start, "\"\"") > 0)
-        return strrepl(start, "\"\"", "\"");
-    else
-        return str_dup(start);
+    return strrepl(start, "\"\"", "\"");
 }
 
-long csv_get_line(char **lineptr, size_t *n, FILE *stream)
+long csv_get_row(char **line, size_t *n, FILE *stream)
 {
-    if (*lineptr == NULL) {
+    if (!*line) {
         *n = 4;
-        *lineptr = malloc(*n);
+        *line = malloc(*n);
     }
 
     bool qtd = false;
@@ -65,9 +84,9 @@ long csv_get_line(char **lineptr, size_t *n, FILE *stream)
 
         if (c >= *n - 2) {
             *n *= 2;
-            *lineptr = realloc(*lineptr, *n);
+            *line = realloc(*line, *n);
         }
-        (*lineptr)[c] = k;
+        (*line)[c] = k;
     }
 
     if (c == 0 && k == EOF) {
@@ -76,10 +95,10 @@ long csv_get_line(char **lineptr, size_t *n, FILE *stream)
         if (ferror(stream))
             return -1;
     } else if (k == '\n') {
-        (*lineptr)[c] = '\n';
+        (*line)[c] = '\n';
         c++;
     }
 
-    (*lineptr)[c] = '\0';
+    (*line)[c] = '\0';
     return c;
 }

@@ -23,7 +23,7 @@ static void cpy_tags(Event *e, const char *tags[], size_t ntags)
 
 static void free_tags(Event *e)
 {
-    if (e->tags != NULL) {
+    if (e->tags) {
         for (unsigned i = 0; i < e->ntags; i++)
             free(e->tags[i]);
         free(e->tags);
@@ -95,7 +95,7 @@ void event_fprint(Event e, FILE *f, uint8_t flags)
 
     if (flags & PRINT_PRTY && priority_validate(e.priority)) {
         fprintf(f, "Priority:\n");
-        fprintf(f, "%s\n", PRIORITY_TEXT[e.priority]);
+        fprintf(f, "%s\n", priority2str(e.priority));
         fprintf(f, "\n");
     }
 
@@ -255,15 +255,20 @@ bool event_contains_tag(Event e, const char *tag)
 
 Priority str2priority(char *str)
 {
-    if (!strcmp(str, "low")) {
+    if (!strcmp(str, PRIORITY_TEXT[LOW])) {
         return LOW;
-    } else if (!strcmp(str, "med")) {
+    } else if (!strcmp(str, PRIORITY_TEXT[MEDIUM])) {
         return MEDIUM;
-    } else if (!strcmp(str, "high")) {
+    } else if (!strcmp(str, PRIORITY_TEXT[HIGH])) {
         return HIGH;
-    } else if (!strcmp(str, "urgent")) {
+    } else if (!strcmp(str, PRIORITY_TEXT[URGENT])) {
         return URGENT;
     } else {
         return -1;
     }
+}
+
+char *priority2str(Priority p)
+{
+    return PRIORITY_TEXT[p];
 }

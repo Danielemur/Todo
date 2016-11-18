@@ -12,50 +12,50 @@ void database_init(Database *db)
 static int read_event(Event *e, char *line)
 {
     event_init(e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
-    char *date, *time, *priority, *subject, *location, *details, *tag;
+    char *tok;
 
-    if ((date = csv_next_tok(&line)) != NULL) {
-        event_set_date(e, date_from_str(date));
-        free(date);
+    if ((tok = csv_next_tok(&line))) {
+        event_set_date(e, date_from_str(tok));
+        free(tok);
     }
     else return -1;
 
-    if ((time = csv_next_tok(&line)) != NULL) {
-        event_set_time(e, time_from_str(time));
-        free(time);
+    if ((tok = csv_next_tok(&line))) {
+        event_set_time(e, time_from_str(tok));
+        free(tok);
     }
     else return -1;
 
-    if ((priority = csv_next_tok(&line)) != NULL) {
-        event_set_priority(e, str2priority(priority));
-        free(priority);
+    if ((tok = csv_next_tok(&line))) {
+        event_set_priority(e, str2priority(tok));
+        free(tok);
     }
     else return -1;
 
-    if ((subject = csv_next_tok(&line)) != NULL) {
-        event_set_subject(e, subject);
-        free(subject);
+    if ((tok = csv_next_tok(&line))) {
+        event_set_subject(e, tok);
+        free(tok);
     }
     else return -1;
 
-    if ((location = csv_next_tok(&line)) != NULL) {
-        event_set_location(e, location);
-        free(location);
+    if ((tok = csv_next_tok(&line))) {
+        event_set_location(e, tok);
+        free(tok);
     }
     else return -1;
 
-    if ((details = csv_next_tok(&line)) != NULL) {
-        event_set_details(e, details);
-        free(details);
+    if ((tok = csv_next_tok(&line))) {
+        event_set_details(e, tok);
+        free(tok);
     }
     else return -1;
 
     while (*line) {
-        tag = csv_next_tok(&line);
-        if (tag == NULL)
+        tok = csv_next_tok(&line);
+        if (!tok)
             return -1;
-        event_add_tag(e, tag);
-        free(tag);
+        event_add_tag(e, tok);
+        free(tok);
     }
 
     return 0;
@@ -70,7 +70,7 @@ int database_load(Database *db, FILE *f)
     char *line = NULL;
     do {
         line_no++;
-        if (csv_get_line(&line, &size, f) == -1) {
+        if (csv_get_row(&line, &size, f) == -1) {
             if (feof(f)) {
                 break;
             } else {
@@ -91,9 +91,77 @@ int database_load(Database *db, FILE *f)
     return 0;
 }
 
+static unsigned max_tags(Database *db)
+{
+    unsigned ct = 0;
+    for (unsigned i = 0; i < db->count; i++) {
+        ct = MAX(ct, db->events[i].ntags);
+    }
+    return ct;
+}
+
+static char *write_event(Event e, char **line, size_t *size, unsigned max_tags)
+{
+    *size = 0;
+    *line = NULL;
+    char *empty = "";
+    char *tok;
+
+    if (!date_is_null(e.date)) {
+        tok = date_to_str(e.date);
+        csv_cat_tok(line, size, tok);
+        free(tok);
+    } else {
+        csv_cat_tok(line, size, empty);
+    }
+
+    if (!time_is_null(e.time)) {
+        tok = time_to_str(e.time);
+        csv_cat_tok(line, size, tok);
+        free(tok);
+    } else {
+        csv_cat_tok(line, size, empty);
+    }
+
+    if (e.subject)
+        csv_cat_tok(line, size, e.subject);
+    else
+        csv_cat_tok(line, size, empty);
+
+    if (priority_validate(e.priority)) {
+        csv_cat_tok(line, size, priority2str(e.priority));
+    } else {
+        csv_cat_tok(line, size, empty);
+    }
+
+    if (e.location)
+        csv_cat_tok(line, size, e.location);
+    else
+        csv_cat_tok(line, size, empty);
+
+    if (e.details)
+        csv_cat_tok(line, size, e.details);
+    else
+        csv_cat_tok(line, size, empty);
+
+    for (unsigned i = 0; i < max_tags; i++)
+        csv_cat_tok(line, size,
+                    (e.tags && i < e.ntags) ? e.tags[i] : empty);
+
+    return *line;
+}
+
 int database_save(Database *db, FILE *f)
 {
-    return 0; //todo
+    size_t size;
+    char *line;
+    unsigned max_tags = max_tags(db);
+    for (unsigned i = 0; i < db->count; i++) {
+        write_event(db->events[i], &line, &size, max_tags);
+        fprintf(f, "%s\n", line);
+    }
+
+    return 0;
 }
 
 void database_add_event(Database *db, Event e)
@@ -105,27 +173,48 @@ void database_add_event(Database *db, Event e)
     *(Event *)new_elem = e;
 }
 
-void database_remove_event(Database *db, Event e)
+void database_remove_event(Database *db, unsigned i)
 {
-    //todo
-    //event_destroy(db->events[i]);
-    //remove_element(db->events, &db->count, sizeof(db->events[0]), i);
+    event_destroy(db->events[i]);
+    remove_element(db->events, &db->count, sizeof(db->events[0]), i);
 }
 
-int database_query_date(Database *db, Date date, Event **events, size_t *size)
+int database_query_date(Database *db, Date d, Event **events, size_t *size)
 {
-    if (!events || !date_validate(date))
+    if (!events || !date_validate(d))
         return -1;
 
     *events = NULL;
     *size = 0;
 
     for (unsigned i = 0; i < db->count; i++) {
-        if (!date_compare(db->events[i].date, date)) {
-            if ((*events = realloc(*events, ++*size * sizeof((*events)[0]))) == NULL)
+        if (!date_compare(db->events[i].date, d)) {
+            if (!(*events = realloc(*events, ++*size * sizeof((*events)[0]))))
                 return -1;
             (*events)[*size - 1] = db->events[i];
-        } else if(date_compare(db->events[i].date, date) > 0)
+        } else if(date_compare(db->events[i].date, d) > 0)
+            break;
+    }
+
+    return 0;
+}
+
+int database_query_date_and_time(Database *db, Date d, Time t, Event **events, size_t *size)
+{
+    if (!events || !date_validate(d))
+        return -1;
+
+    *events = NULL;
+    *size = 0;
+
+    for (unsigned i = 0; i < db->count; i++) {
+        int dc = date_compare(db->events[i].date, d);
+        int tc = time_compare(db->events[i].time, time);
+        if (!dc && !tc) {
+            if (!(*events = realloc(*events, ++*size * sizeof((*events)[0]))))
+                return -1;
+            (*events)[*size - 1] = db->events[i];
+        } else if((dc == 0 && tc > 0) || dc > 0)
             break;
     }
 
@@ -142,7 +231,7 @@ int database_query_tag(Database *db, const char *tag, Event **events, size_t *si
 
     for (unsigned i = 0; i < db->count; i++) {
         if (event_contains_tag(db->events[i], tag)) {
-            if ((*events = realloc(*events, ++*size * sizeof((*events)[0]))) == NULL)
+            if (!(*events = realloc(*events, ++*size * sizeof((*events)[0]))))
                 return -1;
             (*events)[*size - 1] = db->events[i];
         }
