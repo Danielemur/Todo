@@ -1,11 +1,6 @@
 #include "event.h"
 #include "common.h"
 
-static bool priority_validate(Priority p)
-{
-    return p >= LOW && p <= URGENT;
-}
-
 static int strcmp_wrapper(const void *a, const void *b)
 {
     return strcmp(*((char **)a), *((char **)b));
@@ -268,7 +263,12 @@ Priority str2priority(char *str)
     }
 }
 
-char *priority2str(Priority p)
+const char *priority2str(Priority p)
 {
     return PRIORITY_TEXT[p];
+}
+
+bool priority_validate(Priority p)
+{
+    return p >= LOW && p <= URGENT;
 }

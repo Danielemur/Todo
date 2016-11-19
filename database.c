@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "csv.h"
+#include "event.h"
 
 void database_init(Database *db)
 {
@@ -155,9 +156,9 @@ int database_save(Database *db, FILE *f)
 {
     size_t size;
     char *line;
-    unsigned max_tags = max_tags(db);
+    unsigned mx_tgs = max_tags(db);
     for (unsigned i = 0; i < db->count; i++) {
-        write_event(db->events[i], &line, &size, max_tags);
+        write_event(db->events[i], &line, &size, mx_tgs);
         fprintf(f, "%s\n", line);
     }
 
@@ -173,10 +174,51 @@ void database_add_event(Database *db, Event e)
     *(Event *)new_elem = e;
 }
 
-void database_remove_event(Database *db, unsigned i)
+static bool event_equal(Event e1, Event e2)
 {
-    event_destroy(db->events[i]);
-    remove_element(db->events, &db->count, sizeof(db->events[0]), i);
+    bool eq = true;
+    eq |= !date_compare(e1.date, e2.date);
+    eq |= !time_compare(e1.time, e2.time);
+    eq |= e1.priority == e2.priority;
+    eq |= e1.subject == e2.subject;
+    if (e1.subject && e2.subject)
+        eq |= !strcmp(e1.subject, e2.subject);
+    eq |= e1.location == e2.location;
+    if (e1.location && e2.location)
+        eq |= !strcmp(e1.location, e2.location);
+    eq |= e1.details == e2.details;
+    if (e1.details && e2.details)
+        eq |= !strcmp(e1.details, e2.details);
+    eq |= e1.ntags == e2.ntags;
+
+    if (!eq) {
+        return eq;
+    } else {
+        for (unsigned i = 0; i < e1.ntags; i++) {
+            if (strcmp(e1.tags[i], e2.tags[i]))
+                return false;
+        }
+        return true;
+    }
+
+}
+
+static int get_event_index(Database *db, Event e)
+{
+    for (unsigned i = 0; i < db->count; i++) {
+        if (event_equal(db->events[i], e))
+            return i;
+    }
+    return -1;
+}
+
+void database_remove_event(Database *db, Event e)
+{
+    int i = get_event_index(db, e);
+    if (i >= 0) {
+        event_destroy(&db->events[i]);
+        remove_element(db->events, &db->count, sizeof(db->events[0]), i);
+    }
 }
 
 int database_query_date(Database *db, Date d, Event **events, size_t *size)
@@ -209,7 +251,7 @@ int database_query_date_and_time(Database *db, Date d, Time t, Event **events, s
 
     for (unsigned i = 0; i < db->count; i++) {
         int dc = date_compare(db->events[i].date, d);
-        int tc = time_compare(db->events[i].time, time);
+        int tc = time_compare(db->events[i].time, t);
         if (!dc && !tc) {
             if (!(*events = realloc(*events, ++*size * sizeof((*events)[0]))))
                 return -1;

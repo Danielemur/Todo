@@ -11,9 +11,9 @@ long csv_cat_tok(char **line, size_t *size, const char *tok)
         return -1;
 
     tok = strrepl(tok, "\"", "\"\"");
-    char *free = tok;
+    char *tofree = (char *)tok;
     tok = addqt(tok);
-    free(free);
+    free(tofree);
 
     size_t new_size = *size + strlen(tok) + (!*size ? 1 : 2);
     *line = realloc(*line, new_size);
@@ -64,7 +64,12 @@ char *csv_next_tok(char **line)
         (*line)++;
     }
 
+    if (strsubct(start, "\"\"") > 0)
+        return strrepl(start, "\"\"", "\"");
+    else
+        return str_dup(start);
     return strrepl(start, "\"\"", "\"");
+
 }
 
 long csv_get_row(char **line, size_t *n, FILE *stream)

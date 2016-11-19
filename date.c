@@ -2,6 +2,8 @@
 
 #include <stdbool.h>
 
+#include "common.h"
+
 //Sakamoto's algorithm
 static unsigned day_of_week(unsigned d, unsigned m, unsigned y)
 {
@@ -37,7 +39,7 @@ char *time_to_str(Time t)
         return str_dup("Invalid time!");
     else {
         char *ret = malloc(6);
-        sprintf(ret, "%02u:%02u", (t.hour + 11) % 12 + 1, t.minute);
+        sprintf(ret, "%02u:%02u", t.hour, t.minute);
         return ret;
     }
 }
@@ -111,7 +113,7 @@ char *date_to_str(Date d)
         return str_dup("Invalid date!");
     else {
         char *ret = malloc(d.year);
-        sprintf(ret, "%02u/%02u/%04u", (t.hour + 11) % 12 + 1, t.minute);
+        sprintf(ret, "%02u/%02u/%04u", d.month, d.day, d.year);
         return ret;
     }
 }

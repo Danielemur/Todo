@@ -73,7 +73,7 @@ static char *next_tok(char **line) //modifies *line, copies token
     return str_dup(start);
 }
 
-static char *rmqt(char *str) //allocates new string
+static char *rmqt(const char *str) //allocates new string
 {
     if (*str == '"' && str[strlen(str) - 1] == '"') {
         char *ret = malloc(strlen(str) - 1);
@@ -81,14 +81,14 @@ static char *rmqt(char *str) //allocates new string
         ret[strlen(str) - 2] = '\0';
         return ret;
     } else {
-        return str;
+        return str_dup(str);
     }
 }
 
-static char *addqt(char *str) //allocates new string
+static char *addqt(const char *str) //allocates new string
 {
     if (!str)
-        return str;
+        return NULL;
     char *ret = malloc(strlen(str) + 3);
     strcpy(ret + 1, str);
     ret[0] = '\"';

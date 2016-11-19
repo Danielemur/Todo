@@ -68,4 +68,5 @@ void event_remove_tag(Event *e, const char *tag);
 bool event_contains_tag(Event e, const char *tag);
 
 Priority str2priority(char *str);
-char *priority2str(Priority p);
+const char *priority2str(Priority p);
+bool priority_validate(Priority p);
