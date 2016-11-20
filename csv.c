@@ -40,36 +40,45 @@ char *csv_next_tok(char **line)
     const bool dqted = **line == '"';
     *line += dqted;
     char *start = *line;
+    char *end = *line;
+    char *ret;
 
-    for (; dqted || !term_val(**line); (*line)++) {
+    for (; dqted || !term_val(**line); end = ++*line) {
         if (dqted) {
             if (**line == '"') {
                 if (*(*line + 1) == '"') {
-                    (*line)++;
+                    end = ++*line;
                     continue;
                 } else if (term_val(*(*line + 1))) {
-                    **line = '\0';
+                    end = *line;
                     (*line)++;
                     break;
                 } else
                     return NULL;
+            } else if (!**line) {
+                return NULL;
             }
         } else if (**line == '"') {
             return NULL;
         }
     }
 
-    if (**line == ',' || **line == '\n') {
-        **line = '\0';
+    ret = malloc(1 + end - start);
+    memcpy(ret, start, end - start);
+    ret[end - start] = '\0';
+
+    if (**line == ',' || **line == '\n')
         (*line)++;
+
+    if (strsubct(ret, "\"\"") > 0) {
+        char *tofree = ret;
+        ret = strrepl(ret, "\"\"", "\"");
+        free(tofree);
+        return ret;
     }
-
-    if (strsubct(start, "\"\"") > 0)
-        return strrepl(start, "\"\"", "\"");
-    else
-        return str_dup(start);
-    return strrepl(start, "\"\"", "\"");
-
+    else {
+        return ret;
+    }
 }
 
 long csv_get_row(char **line, size_t *n, FILE *stream)

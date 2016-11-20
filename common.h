@@ -63,14 +63,18 @@ static char *next_tok(char **line) //modifies *line, copies token
     for (; isspace(**line); (*line)++)
         if (!**line)
             return NULL;
-    char *start = *line;
-    for (; !isspace(**line); (*line)++)
-        if (!**line)
-            return start;
 
-    **line = '\0';
-    (*line)++;
-    return str_dup(start);
+    char *start = *line;
+    for (; !isspace(**line) && **line; (*line)++);
+
+    char *ret;
+    ret = malloc(1 + *line - start);
+    memcpy(ret, start, *line - start);
+    ret[*line - start] = '\0';
+
+    for (; isspace(**line) && **line; (*line)++);
+
+    return ret;
 }
 
 static char *rmqt(const char *str) //allocates new string

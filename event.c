@@ -123,7 +123,8 @@ void event_print_arr(Event *e, size_t n, uint8_t flags)
 
 void event_fprint_arr(Event *e, size_t n, FILE *f, uint8_t flags)
 {
-    fprintf(f, "\n");
+    if (n > 0)
+        fprintf(f, "\n");
     Date last_date = {0};
     for (unsigned i = 0; i < n; i++) {
         uint8_t pflgs = flags;

@@ -20,9 +20,79 @@ static Time get_current_time()
     return (Time){time->tm_hour, time->tm_min};
 }
 
+static Date get_date_from_toks(char **line)
+{
+    Date today = get_current_date();
+    Date date = NULL_DATE;
+    char *start = *line;
+    char *tok = next_tok(&start);
+
+    if (!strcmp(tok, "today")) {
+        date = today;
+    } else if (!strcmp(tok, "tomorrow")) {
+        date = date_add_days(today, 1);
+    } else if (!strcmp(tok, "yesterday")) {
+        date = date_sub_days(today, 1);
+    } else if (!strcmp(tok, "last")) {
+        free(tok);
+        tok = next_tok(&start);
+
+        int dow = str2dayofweek(tok);
+        if (dow == -1) {
+            fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            *line = NULL;
+        } else {
+            date = date_sub_days(today, 7 + date_day_of_week(today) - dow);
+        }
+    } else if (!strcmp(tok, "next")) {
+        free(tok);
+        tok = next_tok(&start);
+
+        int dow = str2dayofweek(tok);
+        if (dow == -1) {
+            fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            *line = NULL;
+        } else {
+            date = date_add_days(today, 7 + dow - date_day_of_week(today));
+        }
+    } else if (!strcmp(tok, "this")) {
+        free(tok);
+        tok = next_tok(&start);
+
+        int dow = str2dayofweek(tok);
+        if (dow == -1) {
+            fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            *line = NULL;
+        } else {
+            int diff = dow - date_day_of_week(today);
+            if (diff >= 0)
+                date = date_add_days(today, diff);
+            else
+                date = date_sub_days(today, -diff);
+        }
+    } else if (str2dayofweek(tok) >= 0) {
+        int offset = str2dayofweek(tok) - date_day_of_week(today);
+        offset = offset < 0 ? offset + 7 : offset;
+        date = date_add_days(today, offset);
+    } else if(!date_is_null(date = date_from_str(tok))) {
+        if (!date_validate(date)) {
+            fprintf(stderr, "Invalid date \"%s\"\n", tok);
+            date = NULL_DATE;
+        }
+    }
+
+    free(tok);
+
+    if (!date_is_null(date))
+        *line = start;
+
+    return date;
+}
+
 void interactive_mode(Database *db)
 {
     char *tok, *remaining, *line = NULL;
+    Date d;
     size_t size;
     Event *events;
 
@@ -34,40 +104,52 @@ void interactive_mode(Database *db)
             FATAL("Failed to read from stdin!");
 
         remaining = line;
+
+        if (!date_is_null(d = get_date_from_toks(&remaining))) {
+            if (*remaining) {
+                remaining[strlen(remaining) - 1] = '\0';
+                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                continue;
+            }
+            if (database_query_date(db, d, &events, &size) != -1) {
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+            }
+            continue;
+        } else if (!remaining) {
+            continue;
+        }
+
         tok = next_tok(&remaining);
 
         if (!tok) {
             continue;
         } else if (!strcmp(tok, "all")) {
             free(tok);
-            event_print_arr(db->events, db->count, PRINT_ALL);
-        } else if (!strcmp(tok, "date")) {
-            free(tok);
-            tok = next_tok(&remaining);
-
-            Date d = date_from_str(tok);
-            if (!date_validate(d)) {
-                fprintf(stderr, "Invalid date \"%s\"\n", tok);
-            } else if (database_query_date(db, d, &events, &size) != -1) {
-                event_print_arr(events, size, PRINT_ALL);
-                free(events);
+            if (*remaining) {
+                remaining[strlen(remaining) - 1] = '\0';
+                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                continue;
             }
-
-            free(tok);
-            continue;
+            event_print_arr(db->events, db->count, PRINT_ALL);
         } else if (!strcmp(tok, "remove")) {
             free(tok);
-            tok = next_tok(&remaining);
 
-            int err;
+            if (!*remaining) {
+                fprintf(stderr, "Must provide argument\n");
+                continue;
+            }
+
+            int err = -1;
             int which = -1;
-            Date d = date_from_str(tok);
-            if (!date_validate(d)) {
-                fprintf(stderr, "Invalid date \"%s\"\n", tok);
+            Date d = get_date_from_toks(&remaining);
+            if (date_is_null(d)) {
+                remaining[strlen(remaining) - 1] = '\0';
+                fprintf(stderr, "Bad argument \"%s\"\n", remaining);
+                continue;
             } else if (!*remaining) {
                 err = database_query_date(db, d, &events, &size);
             } else {
-                free(tok);
                 tok = next_tok(&remaining);
 
                 Time t = time_from_str(tok);
@@ -78,14 +160,18 @@ void interactive_mode(Database *db)
                     if (*remaining) {
                         free(tok);
                         tok = next_tok(&remaining);
-                        
+
                         char *endptr;
                         which = strtol(tok, &endptr, 10);
-                        if (*endptr != '\0' || which < 0) {
+                        for (; isspace(*endptr) && *endptr; (*endptr)++);
+
+                        if (*endptr != '\0' || endptr == tok || which < 0) {
                             fprintf(stderr, "Invalid selection \"%s\"\n", tok);
                             free(tok);
                             continue;
                         }
+
+                        free(tok);
                     }
                 }
             }
@@ -93,6 +179,7 @@ void interactive_mode(Database *db)
             if (err != -1) {
                 if (size > 1) {
                     if (which == -1 || which >= size) {
+                        printf("Multiple events exist, please narrow your selection\n");
                         event_print_arr(events, size, PRINT_ALL);
                         free(events);
                     } else {
@@ -103,11 +190,16 @@ void interactive_mode(Database *db)
                 }
             }
 
-            free(tok);
             continue;
         } else if (!strcmp(tok, "tag")) {
             free(tok);
             tok = next_tok(&remaining);
+
+            if (*remaining) {
+                remaining[strlen(remaining) - 1] = '\0';
+                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                continue;
+            }
 
             char *noqt = rmqt(tok);
             if (database_query_tag(db, noqt, &events, &size) != -1) {
@@ -117,38 +209,12 @@ void interactive_mode(Database *db)
 
             free(tok);
             continue;
-        } else if (!strcmp(tok, "today")) {
-            free(tok);
-
-            if (database_query_date(db, get_current_date(), &events, &size) != -1) {
-                event_print_arr(events, size, PRINT_ALL);
-                free(events);
-            }
-
-            continue;
-        } else if (!strcmp(tok, "tomorrow")) {
-            free(tok);
-
-            if (database_query_date(db,
-                                    date_add_days(get_current_date(), 1),
-                                    &events, &size) != -1) {
-                event_print_arr(events, size, PRINT_ALL);
-                free(events);
-            }
-
-            continue;
-        } else if (!strcmp(tok, "yesterday")) {
-            free(tok);
-
-            if (database_query_date(db,
-                                    date_sub_days(get_current_date(), 1),
-                                    &events, &size) != -1) {
-                event_print_arr(events, size, PRINT_ALL);
-                free(events);
-            }
-
-            continue;
         } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
+            if (*remaining) {
+                remaining[strlen(remaining) - 1] = '\0';
+                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                continue;
+            }
             free(tok);
             exit(EXIT_SUCCESS);
         } else {

@@ -4,14 +4,6 @@
 
 #include "common.h"
 
-//Sakamoto's algorithm
-static unsigned day_of_week(unsigned d, unsigned m, unsigned y)
-{
-    static int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-    y -= m < 3;
-    return (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
-}
-
 void time_print(Time t)
 {
     time_fprint(t, stdout);
@@ -91,7 +83,7 @@ void date_fprint(Date d, FILE *f)
     if (!date_validate(d))
         fprintf(f, "Invalid date!\n");
     fprintf(f, "%s, %s %u%s, %u\n",
-            DAY_NAME[day_of_week(d.day, d.month, d.year)],
+            DAY_NAME[date_day_of_week(d)],
             MONTH_NAME[d.month - 1],
             d.day,
             DATE_SUFFIX[((d.day - 1) % 10 < 3) && (d.day / 10 != 1) ? (d.day - 1) % 10 : 3],
@@ -134,14 +126,16 @@ static unsigned days_in_month(Date d)
 
 Date date_add_days(Date d, unsigned days)
 {
-    d.day += days;
-    for (unsigned md = days_in_month(d); d.day > md; md = days_in_month(d)) {
-        d.month++;
-        if (d.month > 12) {
-            d.year++;
-            d.month = 1;
+    if (days != 0) {
+        d.day += days;
+        for (unsigned md = days_in_month(d); d.day > md; md = days_in_month(d)) {
+            d.month++;
+            if (d.month > 12) {
+                d.year++;
+                d.month = 1;
+            }
+            d.day -= md;
         }
-        d.day -= md;
     }
     return d;
 }
@@ -177,4 +171,15 @@ bool date_validate(Date d)
 bool date_is_null(Date d)
 {
     return d.year == -1 && d.month == -1 && d.day == -1;
+}
+
+//Sakamoto's algorithm
+unsigned date_day_of_week(Date date)
+{
+    unsigned d = date.day;
+    unsigned m = date.month;
+    unsigned y = date.year;
+    static int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+    y -= m < 3;
+    return (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
 }
