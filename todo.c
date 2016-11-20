@@ -339,6 +339,10 @@ static void interactive_mode(Database *db, char **filepath)
 
             free(tok);
             continue;
+        } else if (!strcmp(tok, "save") || !strcmp(tok, "s")) {
+            free(tok);
+            save(db, *filepath);
+            continue;
         } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
             free(tok);
             if (*remaining) {
