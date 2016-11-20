@@ -6,8 +6,15 @@
 
 void database_init(Database *db)
 {
+    db->modified = false;
     db->count = 0;
     db->events = NULL;
+}
+
+void database_destroy(Database *db)
+{
+    db->count = 0;
+    free(db->events);
 }
 
 static int read_event(Event *e, char *line)
@@ -89,6 +96,8 @@ int database_load(Database *db, FILE *f)
         }
     } while (!feof(f));
     free(line);
+
+    db->modified = false;
     return 0;
 }
 
@@ -162,7 +171,13 @@ int database_save(Database *db, FILE *f)
         fprintf(f, "%s\n", line);
     }
 
+    db->modified = false;
     return 0;
+}
+
+bool database_is_modified(Database *db)
+{
+    return db->modified;
 }
 
 void database_add_event(Database *db, Event e)
@@ -172,6 +187,8 @@ void database_add_event(Database *db, Event e)
     void *new_elem;
     db->events = add_element(db->events, &db->count, sizeof(db->events[0]), i, &new_elem);
     *(Event *)new_elem = e;
+
+    db->modified = true;
 }
 
 static bool event_equal(Event e1, Event e2)
@@ -219,6 +236,8 @@ void database_remove_event(Database *db, Event e)
         event_destroy(&db->events[i]);
         remove_element(db->events, &db->count, sizeof(db->events[0]), i);
     }
+
+    db->modified = true;
 }
 
 int database_query_date(Database *db, Date d, Event **events, size_t *size)

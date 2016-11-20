@@ -36,7 +36,7 @@ static unsigned strsubct(const char *str, const char *sub) //no side effects
 
 static char *strrepl(const char *str, const char *find, const char *repl) //allocates new string
 {
-    if (str && *str && find && *find && repl) {
+    if (str && find && *find && repl) {
         int flen = strlen(find);
         int rlen = strlen(repl);
         int diff = rlen - flen;

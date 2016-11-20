@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "common.h"
 #include "database.h"
@@ -111,7 +112,37 @@ static Date get_date_from_toks(char **line)
     return date;
 }
 
-int select_event(Database *db, char **line, Event *e)
+static bool file_exists(char *filepath)
+{
+
+}
+
+static int save(Database *db, char *filepath)
+{
+    char *backup = malloc(strlen(filepath) + 2);
+    strcpy(backup, filepath);
+    strcat(backup, "~");
+
+    if (rename(filepath, backup) == -1) {
+        if (errno != ENOENT) {
+            free(backup);
+            return -1;
+        }
+    }
+    free(backup);
+
+    FILE *f = fopen(filepath, "w");
+    if (f) {
+        if (database_save(db, f) == -1) {
+            return -1;
+        }
+        fclose(f);
+    }
+
+    return 0;
+}
+
+static int select_event(Database *db, char **line, Event *e)
 {
     char *tok;
     size_t size;
@@ -178,7 +209,30 @@ int select_event(Database *db, char **line, Event *e)
     return -1;
 }
 
-void interactive_mode(Database *db)
+static bool get_yn (char *msg){
+    size_t size = 0;
+    char *line = NULL;
+    int err;
+    for (;;) {
+        if (msg)
+            fprintf(stderr, "%s", msg);
+
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        if (!strcmp(line, "y\n") || !strcmp(line, "Y\n")) {
+            free(line);
+            return 1;
+        } else if (!strcmp(line, "n\n") || !strcmp(line, "N\n")) {
+            free(line);
+            return 0;
+        } else {
+            fprintf(stderr, "Please answer Y/y or N/n\n");
+            continue;
+        }
+    }
+}
+
+static void interactive_mode(Database *db, char **filepath)
 {
     char *tok, *remaining, *line = NULL;
     Date d;
@@ -269,11 +323,20 @@ void interactive_mode(Database *db)
             free(tok);
             continue;
         } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
+            free(tok);
             if (*remaining) {
                 fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
                 continue;
             }
-            free(tok);
+
+            if (database_is_modified(db)) {
+                if (get_yn(
+                        "Database has been modified. "
+                        "Would you like to save before quitting? (y/n) "
+                        ))
+                    save(db, *filepath);
+            }
+
             exit(EXIT_SUCCESS);
         } else {
             if (*tok)
@@ -284,7 +347,7 @@ void interactive_mode(Database *db)
     }
 }
 
-static FILE *get_default_file(void)
+static char *get_default_file_path(void)
 {
     char *home = getenv("HOME");
     if (!home)
@@ -295,35 +358,44 @@ static FILE *get_default_file(void)
     strcpy(fullpath, home);
     strcat(fullpath, path);
 
-    FILE *f = fopen(fullpath, "r");
-    free(fullpath);
-    if (!f)
-        exit(EXIT_FAILURE);
-    else
-        return f;
+    return fullpath;
 }
 
 int main(int argc, char **argv)
 {
+    bool interactive = false;
+    char *filepath = get_default_file_path();
+    int option;
+    while ((option = getopt(argc, argv, "f:i")) != -1) {
+        switch (option) {
+        case 'f':
+            free(filepath);
+            if (optarg[0] == '-') {
+                FATAL("%s: option requires an argument -- '%c'", argv[0], option);
+            }
+            filepath = optarg;
+            break;
+        case 'i':
+            interactive = true;
+            break;
+        case '?':
+            return EXIT_FAILURE;
+        }
+    }
 
-    FILE *f = get_default_file();
 
-    /* if (!f) */
-    /*     FATAL("Failed to open file \"%s\"\n", argv[1]); */
+
+    FILE *f = fopen(filepath, "r");
+
+    if (!f)
+        FATAL("Failed to open file \"%s\"\n", filepath);
 
     Database db;
     database_load(&db, f);
 
-    int option;
-    while ((option = getopt(argc, argv, "fi")) != -1) {
-        switch (option) {
-        case 'f':
-            break;
-        case 'i':
-            interactive_mode(&db);
-            break;
-        case '?':
-            break;
-        }
-    }
+    fclose(f);
+
+    interactive_mode(&db, &filepath);
+
+    return EXIT_SUCCESS;
 }
