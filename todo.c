@@ -267,6 +267,12 @@ static void interactive_mode(Database *db, char **filepath)
                 Time t = time_from_str(remaining);
 
                 if (!time_is_null(t)) {
+                    free(next_tok(&remaining));
+                    for (; isspace(*remaining) && *remaining; remaining++);
+                    if (*remaining) {
+                        fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                        continue;
+                    }
                     if (!time_validate(t)) {
                         fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
                         continue;
