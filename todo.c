@@ -220,7 +220,7 @@ static int select_event(Database *db, char **line, Event *e)
     return -1;
 }
 
-static bool get_yn (char *msg){
+static int get_ync(char *msg){
     size_t size = 0;
     char *line = NULL;
     int err;
@@ -236,8 +236,11 @@ static bool get_yn (char *msg){
         } else if (!strcmp(line, "n\n") || !strcmp(line, "N\n")) {
             free(line);
             return 0;
+        } else if (!strcmp(line, "c\n") || !strcmp(line, "C\n")) {
+            free(line);
+            return -1;
         } else {
-            fprintf(stderr, "Please answer Y/y or N/n\n");
+            fprintf(stderr, "Please answer Y/y, N/n, or C/c\n");
             continue;
         }
     }
@@ -369,11 +372,25 @@ static void interactive_mode(Database *db, char **filepath)
             }
 
             if (database_is_modified(db)) {
-                if (get_yn(
+                switch (get_ync(
                         "Database has been modified. "
-                        "Would you like to save before quitting? (y/n) "
-                        ))
-                    save(db, *filepath);
+                        "Would you like to save before quitting? (y/n/c) "
+                            )) {
+                case 1 :
+                    if (save(db, *filepath) == -1) {
+                        if (get_ync(
+                            "Could not save database. "
+                            "Would you like to quit anyway? (y/n/c) "
+                            ) < 1) {
+                            continue;
+                        }
+                    }
+                    break;
+                case 0 :
+                    break;
+                case -1 :
+                    continue;
+                }
             }
 
             database_destroy(db);
