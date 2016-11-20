@@ -119,7 +119,7 @@ int select_event(Database *db, char **line, Event *e)
 
                 char *endptr;
                 which = strtol(tok, &endptr, 10);
-                for (; isspace(*endptr) && *endptr; (*endptr)++);
+                for (; isspace(*endptr) && *endptr; endptr++);
 
                 if (*endptr != '\0' || endptr == tok || which < 0 || which > size - 1) {
                     fprintf(stderr, "Invalid selection \"%s\"\n", tok);
@@ -237,8 +237,7 @@ void interactive_mode(Database *db)
                 continue;
             }
 
-            char *noqt = rmqt(tok);
-            if (database_query_tag(db, noqt, &events, &size) != -1) {
+            if (database_query_tag(db, tok, &events, &size) != -1) {
                 event_print_arr(events, size, PRINT_ALL);
                 free(events);
             }
