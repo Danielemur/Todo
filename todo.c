@@ -27,6 +27,9 @@ static Date get_date_from_toks(char **line)
     char *start = *line;
     char *tok = next_tok(&start);
 
+    if (!tok)
+        return NULL_DATE;
+
     if (!strcmp(tok, "today")) {
         date = today;
     } else if (!strcmp(tok, "tomorrow")) {
@@ -36,6 +39,12 @@ static Date get_date_from_toks(char **line)
     } else if (!strcmp(tok, "last")) {
         free(tok);
         tok = next_tok(&start);
+
+        if (!tok) {
+            fprintf(stderr, "Incomplete specifier\n");
+            *line = NULL;
+            return NULL_DATE;
+        }
 
         int dow = str2dayofweek(tok);
         if (dow == -1) {
@@ -48,6 +57,12 @@ static Date get_date_from_toks(char **line)
         free(tok);
         tok = next_tok(&start);
 
+        if (!tok) {
+            fprintf(stderr, "Incomplete specifier\n");
+            *line = NULL;
+            return NULL_DATE;
+        }
+
         int dow = str2dayofweek(tok);
         if (dow == -1) {
             fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
@@ -58,6 +73,12 @@ static Date get_date_from_toks(char **line)
     } else if (!strcmp(tok, "this")) {
         free(tok);
         tok = next_tok(&start);
+
+        if (!tok) {
+            fprintf(stderr, "Incomplete specifier\n");
+            *line = NULL;
+            return NULL_DATE;
+        }
 
         int dow = str2dayofweek(tok);
         if (dow == -1) {
