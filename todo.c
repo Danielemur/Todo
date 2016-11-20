@@ -175,13 +175,30 @@ void interactive_mode(Database *db)
 
         if (!date_is_null(d = get_date_from_toks(&remaining))) {
             if (*remaining) {
-                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
-                continue;
+                Time t = time_from_str(remaining);
+
+                if (!time_is_null(t)) {
+                    if (!time_validate(t)) {
+                        fprintf(stderr, "Invalid time \"%s\"\n", tok);
+                        continue;
+                    } else {
+                        if (database_query_date_and_time(db, d, t, &events, &size) != -1) {
+                            event_print_arr(events, size, PRINT_ALL);
+                            free(events);
+                        }
+                        continue;
+                    }
+                } else {
+                    fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                    continue;
+                }
             }
+
             if (database_query_date(db, d, &events, &size) != -1) {
                 event_print_arr(events, size, PRINT_ALL);
                 free(events);
             }
+
             continue;
         } else if (!remaining) {
             continue;
