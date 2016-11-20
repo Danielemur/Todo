@@ -77,6 +77,7 @@ static Date get_date_from_toks(char **line)
     } else if(!date_is_null(date = date_from_str(tok))) {
         if (!date_validate(date)) {
             fprintf(stderr, "Invalid date \"%s\"\n", tok);
+            *line = NULL;
             date = NULL_DATE;
         }
     }
@@ -99,7 +100,8 @@ int select_event(Database *db, char **line, Event *e)
 
     Date d = get_date_from_toks(line);
     if (date_is_null(d)) {
-        fprintf(stderr, "Bad argument \"%s\"\n", *line);
+        if (*line)
+            fprintf(stderr, "Bad argument \"%s\"\n", *line);
         return -1;
     } else if (!**line) {
         err = database_query_date(db, d, &events, &size);
