@@ -313,6 +313,36 @@ static void interactive_mode(Database *db, char **filepath)
                 continue;
             }
             event_print_arr(db->events, db->count, PRINT_ALL);
+        } else if (!strcmp(tok, "load")) {
+            free(tok);
+            tok = next_tok(&remaining);
+
+            if (!tok) {
+                fprintf(stderr, "%s\n", RQRS_ARG);
+                continue;
+            }
+
+            if (*remaining) {
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                continue;
+            }
+
+            FILE *f = fopen(tok, "r");
+
+            if (!f) {
+                fprintf(stderr, "Failed to open file \"%s\"\n", tok);
+                continue;
+            }
+
+            Database new_db;
+            if (database_load(&new_db, f)== -1)
+                continue;
+
+            database_destroy(db);
+            *db = new_db;
+            *filepath = tok;
+            fclose(f);
+
         } else if (!strcmp(tok, "remove")) {
             free(tok);
 
