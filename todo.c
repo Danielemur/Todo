@@ -341,7 +341,25 @@ static void interactive_mode(Database *db, char **filepath)
             continue;
         } else if (!strcmp(tok, "save") || !strcmp(tok, "s")) {
             free(tok);
-            save(db, *filepath);
+            if (save(db, *filepath) == -1)
+                fprintf(stderr, "Failed to save database\n");
+            continue;
+        } else if (!strcmp(tok, "saveas") || !strcmp(tok, "sa")) {
+            free(tok);
+            tok = next_tok(&remaining);
+
+            if (*remaining) {
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                continue;
+            }
+
+            if (save(db, tok) == -1) {
+                fprintf(stderr, "Failed to save database to file \"%s\"\n", tok);
+                free(tok);
+            } else {
+                *filepath = tok;
+            }
+
             continue;
         } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
             free(tok);
@@ -358,6 +376,7 @@ static void interactive_mode(Database *db, char **filepath)
                     save(db, *filepath);
             }
 
+            database_destroy(db);
             exit(EXIT_SUCCESS);
         } else {
             if (*tok)
