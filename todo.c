@@ -156,7 +156,7 @@ int select_event(Database *db, char **line, Event *e)
     if (err != -1) {
         if (size > 1) {
             if (which == -1) {
-                printf("Multiple events exist, please narrow your selection\n");
+                fprintf(stderr, "Multiple events exist, please narrow your selection\n");
                 event_print_arr(events, size, PRINT_ALL);
                 free(events);
                 return -1;
@@ -169,6 +169,9 @@ int select_event(Database *db, char **line, Event *e)
             *e = events[0];
             free(events);
             return 0;
+        } else {
+            fprintf(stderr, "No matching events found\n");
+            return -1;
         }
     }
 
