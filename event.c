@@ -142,6 +142,35 @@ int event_sort_time(Event e1, Event e2)
     return date_cmp ? date_cmp : time_compare(e1.time, e2.time);
 }
 
+bool event_equal(Event e1, Event e2)
+{
+    bool eq = true;
+    eq &= !date_compare(e1.date, e2.date);
+    eq &= !time_compare(e1.time, e2.time);
+    eq &= e1.priority == e2.priority;
+    eq &= e1.subject == e2.subject;
+    if (e1.subject && e2.subject)
+        eq &= !strcmp(e1.subject, e2.subject);
+    eq &= e1.location == e2.location;
+    if (e1.location && e2.location)
+        eq &= !strcmp(e1.location, e2.location);
+    eq &= e1.details == e2.details;
+    if (e1.details && e2.details)
+        eq &= !strcmp(e1.details, e2.details);
+    eq &= e1.ntags == e2.ntags;
+
+    if (!eq) {
+        return eq;
+    } else {
+        for (unsigned i = 0; i < e1.ntags; i++) {
+            if (strcmp(e1.tags[i], e2.tags[i]))
+                return false;
+        }
+        return true;
+    }
+
+}
+
 void event_set_date(Event *e, Date d)
 {
     if (!date_validate(d))

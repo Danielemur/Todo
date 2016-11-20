@@ -55,6 +55,7 @@ void event_print_arr(Event *e, size_t n, uint8_t flags);
 void event_fprint_arr(Event *e, size_t n, FILE *f, uint8_t flags);
 
 int  event_sort_time(Event e1, Event e2);
+bool event_equal(Event e1, Event e2);
 
 void event_set_date(Event *e, Date d);
 void event_set_time(Event *e, Time t);
