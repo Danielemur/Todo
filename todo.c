@@ -7,6 +7,17 @@
 #include "common.h"
 #include "database.h"
 
+#define BAD_IN_FRMT_SPEC "%s \"%s\"\n"
+
+static const char *INC_SPEC = "Incomplete specifier";
+static const char *UNRC_TOK = "Unrecognised token";
+static const char *INV_DATE = "Invalid date";
+static const char *INV_TIME = "Invalid time";
+static const char *INV_SELN = "Invalid selection";
+static const char *BAD_ARG = "Bad argument";
+static const char *EXTR_TXT = "Extraneous text";
+static const char *RQRS_ARG = "Must provide argument";
+
 static Date get_current_date()
 {
     time_t t = time(NULL);
@@ -42,14 +53,14 @@ static Date get_date_from_toks(char **line)
         tok = next_tok(&start);
 
         if (!tok) {
-            fprintf(stderr, "Incomplete specifier\n");
+            fprintf(stderr, "%s\n", INC_SPEC);
             *line = NULL;
             return NULL_DATE;
         }
 
         int dow = str2dayofweek(tok);
         if (dow == -1) {
-            fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             *line = NULL;
         } else {
             date = date_sub_days(today, 7 + date_day_of_week(today) - dow);
@@ -59,14 +70,14 @@ static Date get_date_from_toks(char **line)
         tok = next_tok(&start);
 
         if (!tok) {
-            fprintf(stderr, "Incomplete specifier\n");
+            fprintf(stderr, "%s\n", INC_SPEC);
             *line = NULL;
             return NULL_DATE;
         }
 
         int dow = str2dayofweek(tok);
         if (dow == -1) {
-            fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             *line = NULL;
         } else {
             date = date_add_days(today, 7 + dow - date_day_of_week(today));
@@ -76,14 +87,14 @@ static Date get_date_from_toks(char **line)
         tok = next_tok(&start);
 
         if (!tok) {
-            fprintf(stderr, "Incomplete specifier\n");
+            fprintf(stderr, "%s\n", INC_SPEC);
             *line = NULL;
             return NULL_DATE;
         }
 
         int dow = str2dayofweek(tok);
         if (dow == -1) {
-            fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+            fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             *line = NULL;
         } else {
             int diff = dow - date_day_of_week(today);
@@ -98,7 +109,7 @@ static Date get_date_from_toks(char **line)
         date = date_add_days(today, offset);
     } else if(!date_is_null(date = date_from_str(tok))) {
         if (!date_validate(date)) {
-            fprintf(stderr, "Invalid date \"%s\"\n", tok);
+            fprintf(stderr, BAD_IN_FRMT_SPEC, INV_DATE, tok);
             *line = NULL;
             date = NULL_DATE;
         }
@@ -153,7 +164,7 @@ static int select_event(Database *db, char **line, Event *e)
     Date d = get_date_from_toks(line);
     if (date_is_null(d)) {
         if (*line)
-            fprintf(stderr, "Bad argument \"%s\"\n", *line);
+            fprintf(stderr, BAD_IN_FRMT_SPEC, BAD_ARG, *line);
         return -1;
     } else if (!**line) {
         err = database_query_date(db, d, &events, &size);
@@ -162,7 +173,7 @@ static int select_event(Database *db, char **line, Event *e)
 
         Time t = time_from_str(tok);
         if (!time_validate(t)) {
-            fprintf(stderr, "Invalid time \"%s\"\n", tok);
+            fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
         } else {
             err = database_query_date_and_time(db, d, time_from_str(tok), &events, &size);
             if (**line) {
@@ -174,7 +185,7 @@ static int select_event(Database *db, char **line, Event *e)
                 for (; isspace(*endptr) && *endptr; endptr++);
 
                 if (*endptr != '\0' || endptr == tok || which < 0 || which > size - 1) {
-                    fprintf(stderr, "Invalid selection \"%s\"\n", tok);
+                    fprintf(stderr, BAD_IN_FRMT_SPEC, INV_SELN, tok);
                     free(tok);
                     return -1;
                 }
@@ -257,7 +268,7 @@ static void interactive_mode(Database *db, char **filepath)
 
                 if (!time_is_null(t)) {
                     if (!time_validate(t)) {
-                        fprintf(stderr, "Invalid time \"%s\"\n", tok);
+                        fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
                         continue;
                     } else {
                         if (database_query_date_and_time(db, d, t, &events, &size) != -1) {
@@ -267,7 +278,7 @@ static void interactive_mode(Database *db, char **filepath)
                         continue;
                     }
                 } else {
-                    fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                    fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
                     continue;
                 }
             }
@@ -289,7 +300,7 @@ static void interactive_mode(Database *db, char **filepath)
         } else if (!strcmp(tok, "all")) {
             free(tok);
             if (*remaining) {
-                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
                 continue;
             }
             event_print_arr(db->events, db->count, PRINT_ALL);
@@ -297,7 +308,7 @@ static void interactive_mode(Database *db, char **filepath)
             free(tok);
 
             if (!*remaining) {
-                fprintf(stderr, "Must provide argument\n");
+                fprintf(stderr, "%s\n", RQRS_ARG);
                 continue;
             }
 
@@ -311,7 +322,7 @@ static void interactive_mode(Database *db, char **filepath)
             tok = next_tok(&remaining);
 
             if (*remaining) {
-                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
                 continue;
             }
 
@@ -325,7 +336,7 @@ static void interactive_mode(Database *db, char **filepath)
         } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
             free(tok);
             if (*remaining) {
-                fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
                 continue;
             }
 
@@ -340,7 +351,7 @@ static void interactive_mode(Database *db, char **filepath)
             exit(EXIT_SUCCESS);
         } else {
             if (*tok)
-                fprintf(stderr, "Unrecognised token \"%s\"\n", tok);
+                fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             free(tok);
             continue;
         }
