@@ -89,6 +89,69 @@ static Date get_date_from_toks(char **line)
     return date;
 }
 
+int select_event(Database *db, char **line, Event *e)
+{
+    char *tok;
+    size_t size;
+    Event *events;
+    int err = -1;
+    int which = -1;
+
+    Date d = get_date_from_toks(line);
+    if (date_is_null(d)) {
+        fprintf(stderr, "Bad argument \"%s\"\n", *line);
+        return -1;
+    } else if (!**line) {
+        err = database_query_date(db, d, &events, &size);
+    } else {
+        tok = next_tok(line);
+
+        Time t = time_from_str(tok);
+        if (!time_validate(t)) {
+            fprintf(stderr, "Invalid time \"%s\"\n", tok);
+        } else {
+            err = database_query_date_and_time(db, d, time_from_str(tok), &events, &size);
+            if (**line) {
+                free(tok);
+                tok = next_tok(line);
+
+                char *endptr;
+                which = strtol(tok, &endptr, 10);
+                for (; isspace(*endptr) && *endptr; (*endptr)++);
+
+                if (*endptr != '\0' || endptr == tok || which < 0 || which > size - 1) {
+                    fprintf(stderr, "Invalid selection \"%s\"\n", tok);
+                    free(tok);
+                    return -1;
+                }
+
+                free(tok);
+            }
+        }
+    }
+
+    if (err != -1) {
+        if (size > 1) {
+            if (which == -1) {
+                printf("Multiple events exist, please narrow your selection\n");
+                event_print_arr(events, size, PRINT_ALL);
+                free(events);
+                return -1;
+            } else {
+                *e = events[which];
+                free(events);
+                return 0;
+            }
+        } else if (size == 1) {
+            *e = events[0];
+            free(events);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
 void interactive_mode(Database *db)
 {
     char *tok, *remaining, *line = NULL;
@@ -103,11 +166,13 @@ void interactive_mode(Database *db)
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
 
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
+
         remaining = line;
 
         if (!date_is_null(d = get_date_from_toks(&remaining))) {
             if (*remaining) {
-                remaining[strlen(remaining) - 1] = '\0';
                 fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
                 continue;
             }
@@ -127,7 +192,6 @@ void interactive_mode(Database *db)
         } else if (!strcmp(tok, "all")) {
             free(tok);
             if (*remaining) {
-                remaining[strlen(remaining) - 1] = '\0';
                 fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
                 continue;
             }
@@ -140,55 +204,9 @@ void interactive_mode(Database *db)
                 continue;
             }
 
-            int err = -1;
-            int which = -1;
-            Date d = get_date_from_toks(&remaining);
-            if (date_is_null(d)) {
-                remaining[strlen(remaining) - 1] = '\0';
-                fprintf(stderr, "Bad argument \"%s\"\n", remaining);
-                continue;
-            } else if (!*remaining) {
-                err = database_query_date(db, d, &events, &size);
-            } else {
-                tok = next_tok(&remaining);
-
-                Time t = time_from_str(tok);
-                if (!time_validate(t)) {
-                    fprintf(stderr, "Invalid time \"%s\"\n", tok);
-                } else {
-                    err = database_query_date_and_time(db, d, time_from_str(tok), &events, &size);
-                    if (*remaining) {
-                        free(tok);
-                        tok = next_tok(&remaining);
-
-                        char *endptr;
-                        which = strtol(tok, &endptr, 10);
-                        for (; isspace(*endptr) && *endptr; (*endptr)++);
-
-                        if (*endptr != '\0' || endptr == tok || which < 0) {
-                            fprintf(stderr, "Invalid selection \"%s\"\n", tok);
-                            free(tok);
-                            continue;
-                        }
-
-                        free(tok);
-                    }
-                }
-            }
-
-            if (err != -1) {
-                if (size > 1) {
-                    if (which == -1 || which >= size) {
-                        printf("Multiple events exist, please narrow your selection\n");
-                        event_print_arr(events, size, PRINT_ALL);
-                        free(events);
-                    } else {
-                        database_remove_event(db, events[which]);
-                    }
-                } else if (size == 1) {
-                    database_remove_event(db, events[0]);
-                }
-            }
+            Event e;
+            if (select_event(db, &remaining, &e) != -1)
+                database_remove_event(db, e);
 
             continue;
         } else if (!strcmp(tok, "tag")) {
@@ -196,7 +214,6 @@ void interactive_mode(Database *db)
             tok = next_tok(&remaining);
 
             if (*remaining) {
-                remaining[strlen(remaining) - 1] = '\0';
                 fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
                 continue;
             }
@@ -211,7 +228,6 @@ void interactive_mode(Database *db)
             continue;
         } else if (!strcmp(tok, "quit") || !strcmp(tok, "q")) {
             if (*remaining) {
-                remaining[strlen(remaining) - 1] = '\0';
                 fprintf(stderr, "Extraneous text \"%s\"\n", remaining);
                 continue;
             }
