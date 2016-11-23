@@ -13,6 +13,9 @@ void database_init(Database *db)
 
 void database_destroy(Database *db)
 {
+    for (unsigned i = 0; i < db->count; i++) {
+        event_destroy(&db->events[i]);
+    }
     db->count = 0;
     free(db->events);
 }

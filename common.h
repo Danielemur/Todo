@@ -55,6 +55,39 @@ static char *strrepl(const char *str, const char *find, const char *repl) //allo
     return NULL;
 }
 
+static long getline(char **line, size_t *n, FILE *stream)
+{
+    int k;
+    size_t c = 0;
+
+    if (!*line) {
+        *n = 4;
+        *line = malloc(*n);
+    }
+
+    for (k = fgetc(stream); k != EOF && k != '\n'; c++, k = fgetc(stream)){
+
+        if (c >= *n - 2) {
+            *n *= 2;
+            *line = realloc(*line, *n);
+        }
+        (*line)[c] = k;
+    }
+
+    if (c == 0 && k == EOF) {
+        return -1;
+    } else if (k == EOF) {
+        if (ferror(stream))
+            return -1;
+    } else if (k == '\n') {
+        (*line)[c] = '\n';
+        c++;
+    }
+
+    (*line)[c] = '\0';
+    return c;
+}
+
 static char *next_tok(char **line) //modifies line double ptr, copies token
 {
     if (!line || !*line || !**line)

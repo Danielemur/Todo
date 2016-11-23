@@ -252,6 +252,7 @@ static void interactive_mode(Database *db, char **filepath)
     char *tok, *remaining, *line = NULL;
     Date d;
     size_t size;
+    size_t nevents;
     Event *events;
 
     for (;;) {
@@ -281,8 +282,8 @@ static void interactive_mode(Database *db, char **filepath)
                         fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
                         continue;
                     } else {
-                        if (database_query_date_and_time(db, d, t, &events, &size) != -1) {
-                            event_print_arr(events, size, PRINT_ALL);
+                        if (database_query_date_and_time(db, d, t, &events, &nevents) != -1) {
+                            event_print_arr(events, nevents, PRINT_ALL);
                             free(events);
                         }
                         continue;
@@ -293,8 +294,8 @@ static void interactive_mode(Database *db, char **filepath)
                 }
             }
 
-            if (database_query_date(db, d, &events, &size) != -1) {
-                event_print_arr(events, size, PRINT_ALL);
+            if (database_query_date(db, d, &events, &nevents) != -1) {
+                event_print_arr(events, nevents, PRINT_ALL);
                 free(events);
             }
 
@@ -366,8 +367,8 @@ static void interactive_mode(Database *db, char **filepath)
                 continue;
             }
 
-            if (database_query_tag(db, tok, &events, &size) != -1) {
-                event_print_arr(events, size, PRINT_ALL);
+            if (database_query_tag(db, tok, &events, &nevents) != -1) {
+                event_print_arr(events, nevents, PRINT_ALL);
                 free(events);
             }
 
@@ -424,8 +425,7 @@ static void interactive_mode(Database *db, char **filepath)
                 }
             }
 
-            database_destroy(db);
-            exit(EXIT_SUCCESS);
+            return;
         } else {
             if (*tok)
                 fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
@@ -461,7 +461,7 @@ int main(int argc, char **argv)
             if (optarg[0] == '-') {
                 FATAL("%s: option requires an argument -- '%c'", argv[0], option);
             }
-            filepath = optarg;
+            filepath = str_dup(optarg);
             break;
         case 'i':
             interactive = true;
@@ -486,5 +486,7 @@ int main(int argc, char **argv)
     if (interactive)
         interactive_mode(&db, &filepath);
 
+    free(filepath);
+    database_destroy(&db);
     return EXIT_SUCCESS;
 }
