@@ -2,6 +2,7 @@
 
 #include "common.h"
 
+int TERM_COLOR;
 
 static const char *PRIORITY_TEXT[] = {
     "Low",
@@ -85,38 +86,83 @@ void event_fprint(Event e, FILE *f, uint8_t flags)
 
     if (flags & PRINT_DATE && date_validate(e.date)) {
         fprintf(f, "\n");
+        if (TERM_COLOR)
+            printf(BOLD GRN);
         date_fprint(e.date, f);
+        if (TERM_COLOR)
+            printf(RESET);
         fprintf(f, "\n");
     }
 
-    if (flags & PRINT_TIME && time_validate(e.time))
+    if (flags & PRINT_TIME && time_validate(e.time)) {
+        if (TERM_COLOR)
+            printf(BOLD MAG);
         time_fprint(e.time, f);
+        if (TERM_COLOR)
+            printf(RESET);
+    }
 
     if (flags & PRINT_SUBJ && e.subject) {
+        if (TERM_COLOR)
+            printf(BOLD YEL);
         fprintf(f, "%s\n", e.subject);
+        if (TERM_COLOR)
+            printf(RESET);
         fprintf(f, "\n");
     }
 
     if (flags & PRINT_PRTY && priority_validate(e.priority)) {
+        if (TERM_COLOR)
+            printf(CYN);
         fprintf(f, "Priority:\n");
+        if (TERM_COLOR) {
+            switch (e.priority) {
+            case LOW:
+            printf(GRN);
+                break;
+            case MEDIUM:
+            printf(YEL);
+                break;
+            case HIGH:
+            printf(RED);
+                break;
+            case URGENT:
+            printf(BOLD RED);
+                break;
+            }
+        }
         fprintf(f, "%s\n", priority2str(e.priority));
+        if (TERM_COLOR)
+            printf(RESET);
         fprintf(f, "\n");
     }
 
     if (flags & PRINT_LCTN && e.location) {
+        if (TERM_COLOR)
+            printf(CYN);
         fprintf(f, "Location:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         fprintf(f, "%s\n", e.location);
         fprintf(f, "\n");
     }
 
     if (flags & PRINT_DTLS && e.details) {
+        if (TERM_COLOR)
+            printf(CYN);
         fprintf(f, "Details:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         fprintf(f, "%s\n", e.details);
         fprintf(f, "\n");
     }
 
     if (flags & PRINT_TAGS && e.tags && e.ntags > 0) {
+        if (TERM_COLOR)
+            printf(CYN);
         fprintf(f, "Tags:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         for (unsigned i = 0; i < e.ntags; i++)
             fprintf(f, (i != e.ntags - 1) ? "%s, " : "%s\n", e.tags[i]);
         fprintf(f, "\n");

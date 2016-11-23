@@ -19,6 +19,8 @@ static const char *BAD_ARG = "Bad argument";
 static const char *EXTR_TXT = "Extraneous text";
 static const char *RQRS_ARG = "Must provide argument";
 
+extern int TERM_COLOR;
+
 static Date get_current_date()
 {
     time_t t = time(NULL);
@@ -256,11 +258,17 @@ static void interactive_mode(Database *db, char **filepath)
     Event *events;
 
     for (;;) {
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+
         printf("> ");
         fflush(stdout);
 
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+
+        if (TERM_COLOR)
+            printf(RESET);
 
         if (line[strlen(line) - 1] == '\n')
             line[strlen(line) - 1] = '\0';
@@ -451,11 +459,24 @@ static char *get_default_file_path(void)
 
 int main(int argc, char **argv)
 {
+    TERM_COLOR = isatty(STDOUT_FILENO);
+
     bool interactive = false;
     char *filepath = get_default_file_path();
     int option;
-    while ((option = getopt(argc, argv, "f:i")) != -1) {
+    while ((option = getopt(argc, argv, "c:f:i")) != -1) {
         switch (option) {
+        case 'c':
+            if (optarg[0] == '-') {
+                FATAL("%s: option requires an argument -- '%c'", argv[0], option);
+            }
+
+            char *endptr;
+            TERM_COLOR = strtol(optarg, &endptr, 10);
+            if (*endptr != '\0' || endptr == optarg || TERM_COLOR < 0 || TERM_COLOR > 1)
+                FATAL(BAD_IN_FRMT_SPEC, INV_SELN, optarg);
+
+            break;
         case 'f':
             free(filepath);
             if (optarg[0] == '-') {
