@@ -55,7 +55,7 @@ static char *strrepl(const char *str, const char *find, const char *repl) //allo
     return NULL;
 }
 
-static char *next_tok(char **line) //modifies *line, copies token
+static char *next_tok(char **line) //modifies line double ptr, copies token
 {
     if (!line || !*line || !**line)
         return NULL;
