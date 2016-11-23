@@ -26,7 +26,7 @@ static unsigned strsubct(const char *str, const char *sub) //no side effects
 {
     unsigned count = 0;
     if (str && *str && sub && *sub) {
-        while (str = strstr(str, sub)) {
+        while ((str = strstr(str, sub))) {
             count++;
             str += strlen(sub);
         }
@@ -42,7 +42,7 @@ static char *strrepl(const char *str, const char *find, const char *repl) //allo
         int diff = rlen - flen;
         char *retstr = malloc(strlen(str) + 1 + MAX(0, diff * strsubct(str, find)));
         str = strcpy(retstr, str);
-        while (str = strstr(str, find)) {
+        while ((str = strstr(str, find))) {
             char *start = (char *)str + flen;
             size_t sz_rem = strlen(start);
             memmove(start + diff, start, sz_rem);

@@ -3,6 +3,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+#include <getopt.h>
 
 #include "common.h"
 #include "database.h"
@@ -22,14 +23,20 @@ static Date get_current_date()
 {
     time_t t = time(NULL);
     struct tm *time = localtime(&t);
-    return (Date){time->tm_year + 1900, time->tm_mon + 1, time->tm_mday};
+    if (time != NULL)
+        return (Date){time->tm_year + 1900, time->tm_mon + 1, time->tm_mday};
+    else
+        return NULL_DATE;
 }
 
 static Time get_current_time()
 {
     time_t t = time(NULL);
     struct tm *time = localtime(&t);
-    return (Time){time->tm_hour, time->tm_min};
+    if (time != NULL)
+        return (Time){time->tm_hour, time->tm_min};
+    else
+        return NULL_TIME;
 }
 
 static Date get_date_from_toks(char **line)
@@ -121,11 +128,6 @@ static Date get_date_from_toks(char **line)
         *line = start;
 
     return date;
-}
-
-static bool file_exists(char *filepath)
-{
-
 }
 
 static int save(Database *db, char *filepath)
@@ -223,7 +225,6 @@ static int select_event(Database *db, char **line, Event *e)
 static int get_ync(char *msg){
     size_t size = 0;
     char *line = NULL;
-    int err;
     for (;;) {
         if (msg)
             fprintf(stderr, "%s", msg);
@@ -482,7 +483,8 @@ int main(int argc, char **argv)
 
     fclose(f);
 
-    interactive_mode(&db, &filepath);
+    if (interactive)
+        interactive_mode(&db, &filepath);
 
     return EXIT_SUCCESS;
 }

@@ -21,13 +21,6 @@ typedef enum Priority {
     URGENT
 } Priority;
 
-static const char *PRIORITY_TEXT[] = {
-    "Low",
-    "Medium",
-    "High",
-    "Urgent"
-};
-
 typedef struct Event {
     Date date;
     Time time;

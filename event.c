@@ -1,5 +1,14 @@
 #include "event.h"
+
 #include "common.h"
+
+
+static const char *PRIORITY_TEXT[] = {
+    "Low",
+    "Medium",
+    "High",
+    "Urgent"
+};
 
 static int strcmp_wrapper(const void *a, const void *b)
 {

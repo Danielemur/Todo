@@ -133,16 +133,16 @@ static char *write_event(Event e, char **line, size_t *size, unsigned max_tags)
         csv_cat_tok(line, size, empty);
     }
 
-    if (e.subject)
-        csv_cat_tok(line, size, e.subject);
-    else
-        csv_cat_tok(line, size, empty);
-
     if (priority_validate(e.priority)) {
         csv_cat_tok(line, size, priority2str(e.priority));
     } else {
         csv_cat_tok(line, size, empty);
     }
+
+    if (e.subject)
+        csv_cat_tok(line, size, e.subject);
+    else
+        csv_cat_tok(line, size, empty);
 
     if (e.location)
         csv_cat_tok(line, size, e.location);

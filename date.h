@@ -4,56 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-static const char *MONTH_NAME[] = {
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-};
-
-static const char *DAY_NAME[] = {
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday"
-};
-
-static int str2dayofweek(char *str)
-{
-    if (!strcmp(str, "sunday") || !strcmp(str, "Sunday")) {
-        return 0;
-    } else if (!strcmp(str, "monday") || !strcmp(str, "Monday")) {
-        return 1;
-    } else if (!strcmp(str, "tuesday") || !strcmp(str, "Tuesday")) {
-        return 2;
-    } else if (!strcmp(str, "wednesday") || !strcmp(str, "Wednesday")) {
-        return 3;
-    } else if (!strcmp(str, "thursday") || !strcmp(str, "Thursday")) {
-        return 4;
-    } else if (!strcmp(str, "friday") || !strcmp(str, "Friday")) {
-        return 5;
-    } else if (!strcmp(str, "saturday") || !strcmp(str, "Saturday")) {
-        return 6;
-    } else {
-        return -1;
-    }
-}
-
-static const unsigned DAYS_IN_MONTH[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
-
-static const char *DATE_SUFFIX[] = {"st", "nd", "rd", "th"};
-
 typedef struct Date {
     unsigned year;
     unsigned month;
@@ -88,3 +38,24 @@ int      date_compare(Date d1, Date d2);
 bool     date_validate(Date d);
 bool     date_is_null(Date d);
 unsigned date_day_of_week(Date d);
+
+static int str2dayofweek(char *str)
+{
+    if (!strcmp(str, "sunday") || !strcmp(str, "Sunday")) {
+        return 0;
+    } else if (!strcmp(str, "monday") || !strcmp(str, "Monday")) {
+        return 1;
+    } else if (!strcmp(str, "tuesday") || !strcmp(str, "Tuesday")) {
+        return 2;
+    } else if (!strcmp(str, "wednesday") || !strcmp(str, "Wednesday")) {
+        return 3;
+    } else if (!strcmp(str, "thursday") || !strcmp(str, "Thursday")) {
+        return 4;
+    } else if (!strcmp(str, "friday") || !strcmp(str, "Friday")) {
+        return 5;
+    } else if (!strcmp(str, "saturday") || !strcmp(str, "Saturday")) {
+        return 6;
+    } else {
+        return -1;
+    }
+}

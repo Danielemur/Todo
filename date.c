@@ -4,6 +4,35 @@
 
 #include "common.h"
 
+static const char *MONTH_NAME[] = {
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+};
+
+static const char *DAY_NAME[] = {
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+};
+
+static const unsigned DAYS_IN_MONTH[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+static const char *DATE_SUFFIX[] = {"st", "nd", "rd", "th"};
+
 void time_print(Time t)
 {
     time_fprint(t, stdout);

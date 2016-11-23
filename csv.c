@@ -25,6 +25,8 @@ long csv_cat_tok(char **line, size_t *size, const char *tok)
 
     *size = new_size;
     strcat(*line, tok);
+
+    return 0;
 }
 
 static inline bool term_val(char c)
