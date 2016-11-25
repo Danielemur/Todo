@@ -8,8 +8,8 @@
 #include "common.h"
 #include "database.h"
 
+/* Error messages */
 #define BAD_IN_FRMT_SPEC "%s \"%s\"\n"
-
 static const char *INC_SPEC = "Incomplete specifier";
 static const char *UNRC_TOK = "Unrecognised token";
 static const char *INV_DATE = "Invalid date";
@@ -19,6 +19,7 @@ static const char *BAD_ARG = "Bad argument";
 static const char *EXTR_TXT = "Extraneous text";
 static const char *RQRS_ARG = "Must provide argument";
 
+/* Boolean for colored output */
 extern int TERM_COLOR;
 
 static Date get_current_date()
@@ -41,6 +42,9 @@ static Time get_current_time()
         return NULL_TIME;
 }
 
+/* Attempts to read remaining tokens as date. Returns date on success
+ * and NULL_DATE on failure. In case of improper formatting, *line set
+ * to NULL. */
 static Date get_date_from_toks(char **line)
 {
     Date today = get_current_date();
@@ -48,6 +52,7 @@ static Date get_date_from_toks(char **line)
     char *start = *line;
     char *tok = next_tok(&start);
 
+    //if line is empty
     if (!tok)
         return NULL_DATE;
 
@@ -57,10 +62,11 @@ static Date get_date_from_toks(char **line)
         date = date_add_days(today, 1);
     } else if (!strcmp(tok, "yesterday")) {
         date = date_sub_days(today, 1);
-    } else if (!strcmp(tok, "last")) {
+    } else if (!strcmp(tok, "last")) { //date for given day last week
         free(tok);
         tok = next_tok(&start);
 
+        //if nothing follows "last"
         if (!tok) {
             fprintf(stderr, "%s\n", INC_SPEC);
             *line = NULL;
@@ -68,16 +74,18 @@ static Date get_date_from_toks(char **line)
         }
 
         int dow = str2dayofweek(tok);
+        //if second token not day of week
         if (dow == -1) {
             fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             *line = NULL;
         } else {
             date = date_sub_days(today, 7 + date_day_of_week(today) - dow);
         }
-    } else if (!strcmp(tok, "next")) {
+    } else if (!strcmp(tok, "next")) { //date for given day next week
         free(tok);
         tok = next_tok(&start);
 
+        //if nothing follows "next"
         if (!tok) {
             fprintf(stderr, "%s\n", INC_SPEC);
             *line = NULL;
@@ -85,16 +93,18 @@ static Date get_date_from_toks(char **line)
         }
 
         int dow = str2dayofweek(tok);
+        //if second token not day of week
         if (dow == -1) {
             fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             *line = NULL;
         } else {
             date = date_add_days(today, 7 + dow - date_day_of_week(today));
         }
-    } else if (!strcmp(tok, "this")) {
+    } else if (!strcmp(tok, "this")) { //date for given day this week
         free(tok);
         tok = next_tok(&start);
 
+        //if nothing follows "this"
         if (!tok) {
             fprintf(stderr, "%s\n", INC_SPEC);
             *line = NULL;
@@ -102,6 +112,7 @@ static Date get_date_from_toks(char **line)
         }
 
         int dow = str2dayofweek(tok);
+        //if second token not day of week
         if (dow == -1) {
             fprintf(stderr, BAD_IN_FRMT_SPEC, UNRC_TOK, tok);
             *line = NULL;
@@ -112,11 +123,11 @@ static Date get_date_from_toks(char **line)
             else
                 date = date_sub_days(today, -diff);
         }
-    } else if (str2dayofweek(tok) >= 0) {
+    } else if (str2dayofweek(tok) >= 0) { //next occurance of given day
         int offset = str2dayofweek(tok) - date_day_of_week(today);
         offset = offset < 0 ? offset + 7 : offset;
         date = date_add_days(today, offset);
-    } else if(!date_is_null(date = date_from_str(tok))) {
+    } else if(!date_is_null(date = date_from_str(tok))) { //numeric date
         if (!date_validate(date)) {
             fprintf(stderr, BAD_IN_FRMT_SPEC, INV_DATE, tok);
             *line = NULL;
@@ -132,6 +143,7 @@ static Date get_date_from_toks(char **line)
     return date;
 }
 
+/* Saves database to file, renaming existing file to filepath~ */
 static int save(Database *db, char *filepath)
 {
     char *backup = malloc(strlen(filepath) + 2);
@@ -157,6 +169,7 @@ static int save(Database *db, char *filepath)
     return 0;
 }
 
+/* Sets *e to event with given date, time, and index */
 static int select_event(Database *db, char **line, Event *e)
 {
     char *tok;
@@ -167,10 +180,12 @@ static int select_event(Database *db, char **line, Event *e)
 
     Date d = get_date_from_toks(line);
     if (date_is_null(d)) {
+        //print bad arg msg is line doesn't contain date
         if (*line)
             fprintf(stderr, BAD_IN_FRMT_SPEC, BAD_ARG, *line);
         return -1;
     } else if (!**line) {
+        //query with date provided
         err = database_query_date(db, d, &events, &size);
     } else {
         tok = next_tok(line);
@@ -179,17 +194,24 @@ static int select_event(Database *db, char **line, Event *e)
         if (!time_validate(t)) {
             fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
         } else {
+            //query with date and time provided
             err = database_query_date_and_time(db, d, time_from_str(tok), &events, &size);
             if (**line) {
                 free(tok);
                 tok = next_tok(line);
 
+                //get index for selection from events with same given
+                //date and time
                 char *endptr;
                 which = strtol(tok, &endptr, 10);
                 for (; isspace(*endptr) && *endptr; endptr++);
 
                 if (*endptr != '\0' || endptr == tok || which < 0 || which > size - 1) {
                     fprintf(stderr, BAD_IN_FRMT_SPEC, INV_SELN, tok);
+                    free(tok);
+                    return -1;
+                } else if (**line != '\0') {
+                    fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, *line);
                     free(tok);
                     return -1;
                 }
@@ -224,6 +246,7 @@ static int select_event(Database *db, char **line, Event *e)
     return -1;
 }
 
+/* Prompts user for yes, no, or cancel response to msg */
 static int get_ync(char *msg){
     size_t size = 0;
     char *line = NULL;

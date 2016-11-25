@@ -83,7 +83,6 @@ void event_print(Event e, uint8_t flags)
 
 void event_fprint(Event e, FILE *f, uint8_t flags)
 {
-
     if (flags & PRINT_DATE && date_validate(e.date)) {
         fprintf(f, "\n");
         if (TERM_COLOR)
