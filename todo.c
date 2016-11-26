@@ -357,6 +357,7 @@ static void interactive_mode(Database *db, char **filepath)
 
             if (*remaining) {
                 fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                free(tok);
                 continue;
             }
 
@@ -364,12 +365,15 @@ static void interactive_mode(Database *db, char **filepath)
 
             if (!f) {
                 fprintf(stderr, "Failed to open file \"%s\"\n", tok);
+                free(tok);
                 continue;
             }
 
             Database new_db;
-            if (database_load(&new_db, f)== -1)
+            if (database_load(&new_db, f) == -1) {
+                free(tok);
                 continue;
+            }
 
             database_destroy(db);
             *db = new_db;
@@ -414,8 +418,14 @@ static void interactive_mode(Database *db, char **filepath)
             free(tok);
             tok = next_tok(&remaining);
 
+            if (!tok) {
+                fprintf(stderr, "%s\n", RQRS_ARG);
+                continue;
+            }
+
             if (*remaining) {
                 fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                free(tok);
                 continue;
             }
 
