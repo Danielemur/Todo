@@ -284,14 +284,20 @@ static int new_event_prompt(Event *e)
     event_init(e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
 
     for (;;) {
-        fprintf(stderr, "Please enter a date:\n");
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter a date:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
         remaining = line;
         Date d = get_date_from_toks(&remaining);
         if (date_is_null(d)) {
             if (remaining)
-                fprintf(stderr, BAD_IN_FRMT_SPEC, BAD_ARG, remaining);
+                printf(BAD_IN_FRMT_SPEC, BAD_ARG, remaining);
         } else {
             event_set_date(e, d);
             break;
@@ -299,9 +305,15 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        fprintf(stderr, "Please enter a time:\n");
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter a time:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -310,13 +322,13 @@ static int new_event_prompt(Event *e)
         Time t = time_from_str(tok);
 
         if (*remaining) {
-            fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+            printf(BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
             free(tok);
             continue;
         }
 
         if (!time_validate(t)) {
-            fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
+            printf(BAD_IN_FRMT_SPEC, INV_TIME, tok);
             free(tok);
             continue;
         } else {
@@ -327,9 +339,15 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        fprintf(stderr, "Please enter a Priority (Low, Medium, High, Urgent):\n");
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter a Priority (Low, Medium, High, Urgent):\n");
+        if (TERM_COLOR)
+            printf(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -338,13 +356,13 @@ static int new_event_prompt(Event *e)
         Priority p = priority_from_str(tok);
 
         if (*remaining) {
-            fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+            printf(BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
             free(tok);
             continue;
         }
 
         if (!priority_validate(p)) {
-            fprintf(stderr, BAD_IN_FRMT_SPEC, INV_PRTY, tok);
+            printf(BAD_IN_FRMT_SPEC, INV_PRTY, tok);
             free(tok);
             continue;
         } else {
@@ -355,9 +373,15 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        fprintf(stderr, "Please enter a subject:\n");
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter a subject:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -367,9 +391,15 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        fprintf(stderr, "Please enter a location:\n");
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter a location:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -379,9 +409,15 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        fprintf(stderr, "Please enter details:\n");
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter details:\n");
+        if (TERM_COLOR)
+            printf(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -390,13 +426,24 @@ static int new_event_prompt(Event *e)
         break;
     }
 
-    /* e->tags = NULL; */
-    /* e->ntags = 0; */
-    /* if (tags && ntags > 0) */
-    /*     cpy_tags(e, tags, ntags); */
+    for (;;) {
+        if (TERM_COLOR)
+            printf(BOLD BLU);
+        printf("Please enter a tag, or return if finished:\n");
+        if (TERM_COLOR)
+            printf(RESET);
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        if (line[strlen(line) - 1] == '\n')
+            line[strlen(line) - 1] = '\0';
+        remaining = line;
+        for (; isspace(*remaining) && *remaining; remaining++);
+        if (!*remaining)
+            break;
+        event_add_tag(e, str_dup(remaining));
+    }
 
-
-
+    return 0;
 }
 
 static void interactive_mode(Database *db, char **filepath)
