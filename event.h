@@ -61,6 +61,6 @@ void event_add_tag(Event *e, const char *tag);
 void event_remove_tag(Event *e, const char *tag);
 bool event_contains_tag(Event e, const char *tag);
 
-Priority str2priority(char *str);
-const char *priority2str(Priority p);
+Priority priority_from_str(char *str);
+const char *priority_to_str(Priority p);
 bool priority_validate(Priority p);

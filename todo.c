@@ -14,6 +14,7 @@ static const char *INC_SPEC = "Incomplete specifier";
 static const char *UNRC_TOK = "Unrecognised token";
 static const char *INV_DATE = "Invalid date";
 static const char *INV_TIME = "Invalid time";
+static const char *INV_PRTY = "Invalid priority";
 static const char *INV_SELN = "Invalid selection";
 static const char *BAD_ARG = "Bad argument";
 static const char *EXTR_TXT = "Extraneous text";
@@ -273,6 +274,131 @@ static int get_ync(char *msg)
     }
 }
 
+/* Prompts user for data on new event */
+static int new_event_prompt(Event *e)
+{
+    size_t size = 0;
+    char *line = NULL;
+    char *remaining, *tok;
+
+    event_init(e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
+
+    for (;;) {
+        fprintf(stderr, "Please enter a date:\n");
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        remaining = line;
+        Date d = get_date_from_toks(&remaining);
+        if (date_is_null(d)) {
+            if (remaining)
+                fprintf(stderr, BAD_IN_FRMT_SPEC, BAD_ARG, remaining);
+        } else {
+            event_set_date(e, d);
+            break;
+        }
+    }
+
+    for (;;) {
+        fprintf(stderr, "Please enter a time:\n");
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        remaining = line;
+        for (; isspace(*remaining) && *remaining; remaining++);
+        if (!*remaining)
+            break;
+        tok = next_tok(&remaining);
+        Time t = time_from_str(tok);
+
+        if (*remaining) {
+            fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+            free(tok);
+            continue;
+        }
+
+        if (!time_validate(t)) {
+            fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
+            free(tok);
+            continue;
+        } else {
+            event_set_time(e, t);
+            free(tok);
+            break;
+        }
+    }
+
+    for (;;) {
+        fprintf(stderr, "Please enter a Priority (Low, Medium, High, Urgent):\n");
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        remaining = line;
+        for (; isspace(*remaining) && *remaining; remaining++);
+        if (!*remaining)
+            break;
+        tok = next_tok(&remaining);
+        Priority p = priority_from_str(tok);
+
+        if (*remaining) {
+            fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+            free(tok);
+            continue;
+        }
+
+        if (!priority_validate(p)) {
+            fprintf(stderr, BAD_IN_FRMT_SPEC, INV_PRTY, tok);
+            free(tok);
+            continue;
+        } else {
+            event_set_priority(e, p);
+            free(tok);
+            break;
+        }
+    }
+
+    for (;;) {
+        fprintf(stderr, "Please enter a subject:\n");
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        remaining = line;
+        for (; isspace(*remaining) && *remaining; remaining++);
+        if (!*remaining)
+            break;
+        event_set_subject(e, str_dup(remaining));
+        break;
+    }
+
+    for (;;) {
+        fprintf(stderr, "Please enter a location:\n");
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        remaining = line;
+        for (; isspace(*remaining) && *remaining; remaining++);
+        if (!*remaining)
+            break;
+        event_set_location(e, str_dup(remaining));
+        break;
+    }
+
+    for (;;) {
+        fprintf(stderr, "Please enter details:\n");
+        if (getline(&line, &size, stdin) == -1)
+            FATAL("Failed to read from stdin!");
+        remaining = line;
+        for (; isspace(*remaining) && *remaining; remaining++);
+        if (!*remaining)
+            break;
+        event_set_details(e, str_dup(remaining));
+        break;
+    }
+
+    /* e->tags = NULL; */
+    /* e->ntags = 0; */
+    /* if (tags && ntags > 0) */
+    /*     cpy_tags(e, tags, ntags); */
+
+
+
+}
+
 static void interactive_mode(Database *db, char **filepath)
 {
     char *tok, *remaining, *line = NULL;
@@ -384,6 +510,18 @@ static void interactive_mode(Database *db, char **filepath)
             *filepath = tok;
             fclose(f);
 
+        } else if (!strcmp(tok, "new")) {
+            free(tok);
+
+            if (*remaining) {
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                continue;
+            }
+
+            Event e;
+            new_event_prompt(&e);
+            database_add_event(db, e);
+            continue;
         } else if (!strcmp(tok, "remove")) {
             free(tok);
 

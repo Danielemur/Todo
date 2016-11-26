@@ -38,7 +38,7 @@ static int read_event(Event *e, char *line)
     else return -1;
 
     if ((tok = csv_next_tok(&line))) {
-        event_set_priority(e, str2priority(tok));
+        event_set_priority(e, priority_from_str(tok));
         free(tok);
     }
     else return -1;
@@ -137,7 +137,7 @@ static char *write_event(Event e, char **line, size_t *size, unsigned max_tags)
     }
 
     if (priority_validate(e.priority)) {
-        csv_cat_tok(line, size, priority2str(e.priority));
+        csv_cat_tok(line, size, priority_to_str(e.priority));
     } else {
         csv_cat_tok(line, size, empty);
     }

@@ -130,7 +130,7 @@ void event_fprint(Event e, FILE *f, uint8_t flags)
                 break;
             }
         }
-        fprintf(f, "%s\n", priority2str(e.priority));
+        fprintf(f, "%s\n", priority_to_str(e.priority));
         if (TERM_COLOR)
             printf(RESET);
         fprintf(f, "\n");
@@ -332,22 +332,26 @@ bool event_contains_tag(Event e, const char *tag)
     return get_tag_index(e, tag) != -1;
 }
 
-Priority str2priority(char *str)
+Priority priority_from_str(char *str)
 {
-    if (!strcmp(str, PRIORITY_TEXT[LOW])) {
+    if (!strcmp(str, PRIORITY_TEXT[LOW]) ||
+        !strcmp(str, "low")) {
         return LOW;
-    } else if (!strcmp(str, PRIORITY_TEXT[MEDIUM])) {
+    } else if (!strcmp(str, PRIORITY_TEXT[MEDIUM]) ||
+        !strcmp(str, "medium")) {
         return MEDIUM;
-    } else if (!strcmp(str, PRIORITY_TEXT[HIGH])) {
+    } else if (!strcmp(str, PRIORITY_TEXT[HIGH]) ||
+        !strcmp(str, "high")) {
         return HIGH;
-    } else if (!strcmp(str, PRIORITY_TEXT[URGENT])) {
+    } else if (!strcmp(str, PRIORITY_TEXT[URGENT]) ||
+        !strcmp(str, "urgent")) {
         return URGENT;
     } else {
         return -1;
     }
 }
 
-const char *priority2str(Priority p)
+const char *priority_to_str(Priority p)
 {
     return PRIORITY_TEXT[p];
 }
