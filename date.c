@@ -94,7 +94,7 @@ int time_compare(Time t1, Time t2)
 
 bool time_validate(Time t)
 {
-    return t.minute <= 60 && t.hour <= 24;
+    return t.minute < 60 && t.hour < 24;
 }
 
 bool time_is_null(Time t)
@@ -194,7 +194,8 @@ int date_compare(Date d1, Date d2)
 
 bool date_validate(Date d)
 {
-    return d.month <= 12 && d.day <= days_in_month(d);
+    return d.month > 0 && d.day > 0 &&
+        d.month <= 12 && d.day <= days_in_month(d);
 }
 
 bool date_is_null(Date d)

@@ -44,7 +44,7 @@ static Time get_current_time()
 
 /* Attempts to read remaining tokens as date. Returns date on success
  * and NULL_DATE on failure. In case of improper formatting, *line set
- * to NULL. */
+ * to NULL. Does not increment line if input is not in date format. */
 static Date get_date_from_toks(char **line)
 {
     Date today = get_current_date();
@@ -195,7 +195,7 @@ static int select_event(Database *db, char **line, Event *e)
             fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
         } else {
             //query with date and time provided
-            err = database_query_date_and_time(db, d, time_from_str(tok), &events, &size);
+            err = database_query_date_and_time(db, d, t, &events, &size);
             if (**line) {
                 free(tok);
                 tok = next_tok(line);
@@ -247,7 +247,8 @@ static int select_event(Database *db, char **line, Event *e)
 }
 
 /* Prompts user for yes, no, or cancel response to msg */
-static int get_ync(char *msg){
+static int get_ync(char *msg)
+{
     size_t size = 0;
     char *line = NULL;
     for (;;) {
@@ -303,20 +304,23 @@ static void interactive_mode(Database *db, char **filepath)
                 Time t = time_from_str(remaining);
 
                 if (!time_is_null(t)) {
-                    free(next_tok(&remaining));
+                    tok = next_tok(&remaining);
                     for (; isspace(*remaining) && *remaining; remaining++);
                     if (*remaining) {
                         fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                        free(tok);
                         continue;
                     }
                     if (!time_validate(t)) {
                         fprintf(stderr, BAD_IN_FRMT_SPEC, INV_TIME, tok);
+                        free(tok);
                         continue;
                     } else {
                         if (database_query_date_and_time(db, d, t, &events, &nevents) != -1) {
                             event_print_arr(events, nevents, PRINT_ALL);
                             free(events);
                         }
+                        free(tok);
                         continue;
                     }
                 } else {
