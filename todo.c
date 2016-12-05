@@ -253,6 +253,7 @@ static int get_ync(char *msg)
     size_t size = 0;
     char *line = NULL;
     for (;;) {
+        fprintf(stderr, RESET);
         if (msg)
             fprintf(stderr, "%s", msg);
 
@@ -534,6 +535,29 @@ static void interactive_mode(Database *db, char **filepath)
             free(tok);
             tok = next_tok(&remaining);
 
+            if (database_is_modified(db)) {
+                switch (get_ync(
+                        "Database has been modified.\n"
+                        "Would you like to save before loading the new database? (y/n/c) "
+                            )) {
+                case 1 :
+                    if (save(db, *filepath) == -1) {
+                        if (get_ync(
+                            "Could not save database.\n"
+                            "Would you like to load the new database anyway? (y/n/c) "
+                            ) < 1) {
+                            continue;
+                        }
+                    }
+                    break;
+                case 0 :
+                    break;
+                case -1 :
+                    continue;
+                }
+            }
+
+
             if (!tok) {
                 fprintf(stderr, "%s\n", RQRS_ARG);
                 continue;
@@ -642,13 +666,13 @@ static void interactive_mode(Database *db, char **filepath)
 
             if (database_is_modified(db)) {
                 switch (get_ync(
-                        "Database has been modified. "
+                        "Database has been modified.\n"
                         "Would you like to save before quitting? (y/n/c) "
                             )) {
                 case 1 :
                     if (save(db, *filepath) == -1) {
                         if (get_ync(
-                            "Could not save database. "
+                            "Could not save database.\n"
                             "Would you like to quit anyway? (y/n/c) "
                             ) < 1) {
                             continue;
