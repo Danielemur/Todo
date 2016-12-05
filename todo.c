@@ -523,6 +523,13 @@ static void interactive_mode(Database *db, char **filepath)
                 continue;
             }
             event_print_arr(db->events, db->count, PRINT_ALL);
+        } else if (!strcmp(tok, "date")) {
+            free(tok);
+            if (*remaining) {
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                continue;
+            }
+            date_print(get_current_date());
         } else if (!strcmp(tok, "load")) {
             free(tok);
             tok = next_tok(&remaining);
