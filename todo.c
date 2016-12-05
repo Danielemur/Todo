@@ -569,7 +569,7 @@ static void interactive_mode(Database *db, char **filepath)
             new_event_prompt(&e);
             database_add_event(db, e);
             continue;
-        } else if (!strcmp(tok, "remove")) {
+        } else if (!strcmp(tok, "remove") || !strcmp(tok, "rm")) {
             free(tok);
 
             if (!*remaining) {
