@@ -337,8 +337,13 @@ void stredit(char **str)
         get_pos_from_index(new_str, start_pos, dim, strlen(new_str) - 1, &end_pos);
         set_cursor_pos(start_pos);
         printf("%s\033[K", new_str);
-        if (end_pos.y > dim.y)
+        if (end_pos.y > dim.y) {
             start_pos.y--;
+            end_pos.y--;
+        }
+        add_wrap(&end_pos, dim, 1);
+        set_cursor_pos(end_pos);
+        printf("\033[K");
         get_pos_from_index(new_str, start_pos, dim, index, &curr_pos);
         set_cursor_pos(curr_pos);
 
