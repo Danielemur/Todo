@@ -369,7 +369,7 @@ int main(int argc, char **argv)
     if (!strcmp(argv[1], "0")) {
         start_noncannon();
         char c;
-        while ((c = get_char()) != '\n') {
+        while ((c = getchar()) != '\n') {
             printf("%o\n", c);
         }
         end_noncannon();
