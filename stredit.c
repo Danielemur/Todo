@@ -5,25 +5,11 @@
 #include <string.h>
 #include <ctype.h>
 
-#define TAB_WIDTH 8
-
 #define FATAL(args...)                          \
     do {                                        \
         fprintf(stderr, args);                  \
         exit(EXIT_FAILURE);                     \
     } while(0)
-
-static FILE *CHAR_LOG = NULL;
-
-static inline int get_char(void)
-{
-    int c = getchar();
-    if (CHAR_LOG) {
-        fprintf(CHAR_LOG, "%o\n", c);
-        fflush(CHAR_LOG);
-    }
-    return c;
-}
 
 static struct termios old, new;
 
@@ -63,10 +49,10 @@ void set_cursor_pos(vec2 p)
 static int try_read_pos(char *resp, size_t *n)
 {
     char c;
-    while ((c = get_char()) != '\033');
-    if ((c = get_char()) != '[')
+    while ((c = getchar()) != '\033');
+    if ((c = getchar()) != '[')
         return 0;
-    while ((c = get_char()) != ';') {
+    while ((c = getchar()) != ';') {
         if (!isdigit(c))
             return 0;
         else {
@@ -80,7 +66,7 @@ static int try_read_pos(char *resp, size_t *n)
     if (*n > 64)
         FATAL("Critical Error!");
 
-    while ((c = get_char()) != 'R') {
+    while ((c = getchar()) != 'R') {
         if (!isdigit(c))
             return 0;
         else {
@@ -187,6 +173,8 @@ static inline void down_line(char *str, int *index, vec2 dim)
 {
     if (*index + dim.x - 1 < strlen(str))
         *index += dim.x;
+    else
+        *index = strlen(str);
 }
 
 void forward_delete_word(char **str, size_t *n, unsigned *i)
@@ -220,15 +208,6 @@ void backward_delete_word(char **str, size_t *n, unsigned *i)
     *i = end;
 }
 
-static int chrind(char *str, unsigned start, char c)
-{
-    char *offset = strchr(str + start, '\t');
-    if (!offset)
-        return -1;
-    else
-        return offset - str;
-}
-
 static void add_wrap(vec2 *pos, vec2 dim, unsigned n)
 {
     pos->y += (pos->x + n - 1) / dim.x;
@@ -239,33 +218,8 @@ static void add_wrap(vec2 *pos, vec2 dim, unsigned n)
 static int get_pos_from_index(char *str, vec2 start, vec2 dim,
                               unsigned index, vec2 *pos)
 {
-    const char *beginning = str;
     *pos = (vec2){start.x, start.y};
-    int tab_ind = chrind(str, 0, '\t');
-    if (tab_ind < 0  || tab_ind >= index) { //no tabs
-        add_wrap(pos, dim, index);
-    } else {
-        unsigned offset;
-        for (offset = 0; tab_ind < index && tab_ind >= 0; tab_ind = chrind(str, offset, '\t')) {
-            add_wrap(pos, dim, tab_ind - offset); //handle normal text first
-
-            unsigned test_width = TAB_WIDTH - ((pos->x - 1) % TAB_WIDTH); //now tabs
-            if ((pos->x + test_width < dim.x)) { //normal tabs
-                pos->x += test_width;
-            } else {
-                if (pos->x == dim.x) //line already full
-                    continue;
-                for (; *str == '\t'; str++);//line almost full
-                pos->x = dim.x;
-            }
-
-            offset = tab_ind + 1;
-        }
-        if (tab_ind < 0 || tab_ind >= (int)index) {
-            offset = index - offset;
-            add_wrap(pos, dim, offset);
-        }
-    }
+    add_wrap(pos, dim, index);
 }
 
 void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
@@ -292,8 +246,8 @@ void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
     } else if(c == '\020') { //up
         up_line(*new_str, index, dim);
     } else if(c == '\033') {
-        if ((c = get_char()) == '[') {
-            switch (c = get_char()) {
+        if ((c = getchar()) == '[') {
+            switch (c = getchar()) {
             case 'A': //up
                 up_line(*new_str, index, dim);
                 break;
@@ -312,15 +266,15 @@ void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
                 OVWRT = !OVWRT;
                 break;
             case '3':
-                switch (get_char()) {
+                switch (getchar()) {
                 case  '~':
                     if (*index <= len) {
                         forward_delete_char(new_str, n, index);
                     }
                     break;
                 case ';':
-                    if (get_char() == '5') {
-                        if (get_char() == '~') {
+                    if (getchar() == '5') {
+                        if (getchar() == '~') {
                             forward_delete_word(new_str, n, index);
                         }
                     }
@@ -328,9 +282,9 @@ void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
                 }
                     break;
             case '1':
-                if (get_char() == ';') {
-                    if (get_char() == '5') {
-                        switch (get_char()) {
+                if (getchar() == ';') {
+                    if (getchar() == '5') {
+                        switch (getchar()) {
                         case 'C': //right by word
                             forward_word(*new_str, index);
                             break;
@@ -370,11 +324,11 @@ void stredit(char **str)
             add_wrap(&start_pos, dim, 0);
         }
 
-        c = get_char();
+        c = getchar();
         if (c == '\n')
             break;
 
-        if (c >= ' ' && c <= '~' || c == '\t')
+        if (c >= ' ' && c <= '~')
             insert_char(&new_str, &n, c, &index);
         else
             do_ctrl(c, dim, start_pos, curr_pos, &new_str, &n, &index);
@@ -402,7 +356,6 @@ void stredit(char **str)
 
 int main(int argc, char **argv)
 {
-    CHAR_LOG = fopen("CHAR_LOG", "w");
 
     if (argc < 2)
         return -1;
@@ -436,7 +389,7 @@ int main(int argc, char **argv)
         scanf("\033[%*u;%*uR");
         char c;
         while (1) {
-            c = get_char();
+            c = getchar();
             printf("%o\n", c);
         }
         end_noncannon();
