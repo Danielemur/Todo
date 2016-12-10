@@ -133,7 +133,7 @@ char *date_to_str(Date d)
     if (!date_validate(d))
         return str_dup("Invalid date!");
     else {
-        char *ret = malloc(d.year);
+        char *ret = malloc(d.month % 10 + d.day % 10 + d.year % 10 + 3);
         sprintf(ret, "%02u/%02u/%04u", d.month, d.day, d.year);
         return ret;
     }
