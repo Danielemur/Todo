@@ -40,6 +40,7 @@ void event_init(Event *e,
                 const char *det,
                 const char *tags[],
                 size_t ntags);
+void event_clone(Event *dest, Event src);
 void event_destroy(Event *e);
 
 void event_print(Event e, uint8_t flags);

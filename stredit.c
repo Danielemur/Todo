@@ -1,105 +1,9 @@
-#include <termios.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include "stredit.h"
+
 #include <stdbool.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
-#define FATAL(args...)                          \
-    do {                                        \
-        fprintf(stderr, args);                  \
-        exit(EXIT_FAILURE);                     \
-    } while(0)
-
-static struct termios old, new;
-
-void start_noncannon(void)
-{
-    tcgetattr(0, &old);
-    new = old;
-    new.c_lflag &= ~ICANON;
-    new.c_lflag &= ~ECHO;
-    tcsetattr(0, TCSANOW, &new);
-}
-
-void end_noncannon(void)
-{
-    tcsetattr(0, TCSANOW, &old);
-}
-
-typedef struct vec2 {
-    unsigned x, y;
-} vec2;
-
-static inline void vec2_print(vec2 v)
-{
-    printf("(%u, %u)", v.x, v.y);
-}
-
-static inline vec2 vec2_add(vec2 v1, vec2 v2)
-{
-    return (vec2){v1.x + v2.x, v1.y + v2.y};
-}
-
-void set_cursor_pos(vec2 p)
-{
-    printf("\033[%u;%uH", p.y, p.x);
-}
-
-static int try_read_pos(char *resp, size_t *n)
-{
-    char c;
-    while ((c = getchar()) != '\033');
-    if ((c = getchar()) != '[')
-        return 0;
-    while ((c = getchar()) != ';') {
-        if (!isdigit(c))
-            return 0;
-        else {
-            resp[(*n)++] = c;
-            if (*n > 64)
-                FATAL("Critical Error!");
-        }
-    }
-
-    resp[(*n)++] = ';';
-    if (*n > 64)
-        FATAL("Critical Error!");
-
-    while ((c = getchar()) != 'R') {
-        if (!isdigit(c))
-            return 0;
-        else {
-            resp[(*n)++] = c;
-            if (*n > 64)
-                FATAL("Critical Error!");
-        }
-    }
-    resp[*n] = '\0';
-    return 1;
-}
-
-vec2 get_cursor_pos(void)
-{
-    vec2 p;
-    size_t n = 0;
-    char resp[65] = "";
-    printf("\033[6n");
-    while (!try_read_pos(resp, &n));
-    sscanf(resp, "%u;%u", &p.y, &p.x);
-    return p;
-}
-
-vec2 get_term_size(void)
-{
-    vec2 s;
-    size_t n = 0;
-    char resp[65] = "";
-    printf("\033[s\033[999;999H\033[6n\033[u");
-    while (!try_read_pos(resp, &n));
-    sscanf(resp, "%u;%u", &s.y, &s.x);
-    return s;
-}
 
 static bool OVWRT = false;
 
@@ -111,7 +15,7 @@ static inline void ensure_size(char **str, size_t *n)
     }
 }
 
-void insert_char(char **str, size_t *n, char c, unsigned *i)
+static void insert_char(char **str, size_t *n, char c, unsigned *i)
 {
     if (OVWRT) {
         if (*i == strlen(*str)) {
@@ -128,7 +32,7 @@ void insert_char(char **str, size_t *n, char c, unsigned *i)
     (*i)++;
 }
 
-void remove_char(char **str, size_t *n, unsigned i)
+static void remove_char(char **str, size_t *n, unsigned i)
 {
     if (strlen(*str) < *n / 2) {
         *n /= 2;
@@ -140,12 +44,14 @@ void remove_char(char **str, size_t *n, unsigned i)
 
 static inline void backward_delete_char(char **str, size_t *n, unsigned *i)
 {
-    remove_char(str, n, --*i);
+    if (*i > 0)
+        remove_char(str, n, --*i);
 }
 
 static inline void forward_delete_char(char **str, size_t *n, unsigned *i)
 {
-    remove_char(str, n, *i);
+    if (strlen(*str) > 0)
+        remove_char(str, n, *i);
 }
 
 static inline void forward_word(char *str, int *index)
@@ -177,7 +83,7 @@ static inline void down_line(char *str, int *index, vec2 dim)
         *index = strlen(str);
 }
 
-void forward_delete_word(char **str, size_t *n, unsigned *i)
+static void forward_delete_word(char **str, size_t *n, unsigned *i)
 {
     unsigned end = *i;
     forward_word(*str, &end);
@@ -192,7 +98,7 @@ void forward_delete_word(char **str, size_t *n, unsigned *i)
     memmove(offset - diff, offset, strlen(offset) + 1);
 }
 
-void backward_delete_word(char **str, size_t *n, unsigned *i)
+static void backward_delete_word(char **str, size_t *n, unsigned *i)
 {
     unsigned end = *i;
     backward_word(*str, &end);
@@ -208,22 +114,22 @@ void backward_delete_word(char **str, size_t *n, unsigned *i)
     *i = end;
 }
 
-static void add_wrap(vec2 *pos, vec2 dim, unsigned n)
+static inline void add_wrap(vec2 *pos, vec2 dim, unsigned n)
 {
     pos->y += (pos->x + n - 1) / dim.x;
     pos->x += n;
     pos->x = ((pos->x - 1) % dim.x) + 1;
 }
 
-static int get_pos_from_index(char *str, vec2 start, vec2 dim,
-                              unsigned index, vec2 *pos)
+static inline int get_pos_from_index(char *str, vec2 start, vec2 dim,
+                                     unsigned index, vec2 *pos)
 {
     *pos = (vec2){start.x, start.y};
     add_wrap(pos, dim, index);
 }
 
-void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
-             char **new_str, size_t *n, int *index)
+static void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
+                    char **new_str, size_t *n, int *index)
 {
     unsigned len = strlen(*new_str);
     if(c == '\177') { //backspace
@@ -259,7 +165,7 @@ void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
                     (*index)++;
                 break;
             case 'D': //left
-                if (*index - 1 >= 0)
+                if (*index > 0)
                     (*index)--;
                 break;
             case '2':
@@ -280,7 +186,7 @@ void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
                     }
                     break;
                 }
-                    break;
+                break;
             case '1':
                 if (getchar() == ';') {
                     if (getchar() == '5') {
@@ -300,21 +206,25 @@ void do_ctrl(char c, vec2 dim, vec2 start, vec2 curr,
     }
 }
 
-void stredit(char **str)
+char *stredit(const char *str)
 {
     vec2 start_pos, curr_pos, dim;
     int index = 0;
     unsigned len = 0;
-    size_t n = 2 * (strlen(*str) + 1);
+    size_t n = 2 * (str ? (strlen(str) + 1) : 1);
     char *new_str = malloc(n);
-    strcpy(new_str, *str);
+    if (str)
+        strcpy(new_str, str);
+    else
+        strcpy(new_str, "");
 
     start_noncannon();
     start_pos = get_cursor_pos();
     dim = get_term_size();
 
     curr_pos = start_pos;
-    printf("%s", *str);
+    if (str)
+        printf("%s", str);
     set_cursor_pos(curr_pos);
 
     char c;
@@ -334,14 +244,13 @@ void stredit(char **str)
             do_ctrl(c, dim, start_pos, curr_pos, &new_str, &n, &index);
 
         vec2 end_pos;
-        get_pos_from_index(new_str, start_pos, dim, strlen(new_str) - 1, &end_pos);
+        get_pos_from_index(new_str, start_pos, dim, strlen(new_str), &end_pos);
         set_cursor_pos(start_pos);
-        printf("%s\033[K", new_str);
+        printf("%s \033[K", new_str);
         if (end_pos.y > dim.y) {
             start_pos.y--;
             end_pos.y--;
         }
-        add_wrap(&end_pos, dim, 1);
         set_cursor_pos(end_pos);
         if (end_pos.y <= dim.y)
             printf("\033[K");
@@ -349,49 +258,49 @@ void stredit(char **str)
         set_cursor_pos(curr_pos);
 
     }
-    *str = new_str;
     printf("\n");
     end_noncannon();
+    return new_str;
 }
 
-int main(int argc, char **argv)
-{
+/* int main(int argc, char **argv) */
+/* { */
 
-    if (argc < 2)
-        return -1;
-    if (!strcmp(argv[1], "1")) {
-        char *str = "Hello, world!";
-        stredit(&str);
-        printf("\n");
-        puts(str);
-    }
+/*     if (argc < 2) */
+/*         return -1; */
+/*     if (!strcmp(argv[1], "1")) { */
+/*         char *str = "Hello, world!"; */
+/*         stredit(&str); */
+/*         printf("\n"); */
+/*         puts(str); */
+/*     } */
 
-    if (!strcmp(argv[1], "0")) {
-        start_noncannon();
-        char c;
-        while ((c = getchar()) != '\n') {
-            printf("%o\n", c);
-        }
-        end_noncannon();
-    }
+/*     if (!strcmp(argv[1], "0")) { */
+/*         start_noncannon(); */
+/*         char c; */
+/*         while ((c = getchar()) != '\n') { */
+/*             printf("%o\n", c); */
+/*         } */
+/*         end_noncannon(); */
+/*     } */
 
-    if (!strcmp(argv[1], "2")) {
-        start_noncannon();
-        vec2 dim = get_term_size();
-        printf("(%u, %u)\n", dim.x, dim.y);
-        end_noncannon();
-    }
+/*     if (!strcmp(argv[1], "2")) { */
+/*         start_noncannon(); */
+/*         vec2 dim = get_term_size(); */
+/*         printf("(%u, %u)\n", dim.x, dim.y); */
+/*         end_noncannon(); */
+/*     } */
 
-    if(!strcmp(argv[1], "3")) {
-        start_noncannon();
-        printf("\033[s\033[999;999H\033[6n\033[u");
-        ungetc('f', stdin);
-        scanf("\033[%*u;%*uR");
-        char c;
-        while (1) {
-            c = getchar();
-            printf("%o\n", c);
-        }
-        end_noncannon();
-    }
-}
+/*     if(!strcmp(argv[1], "3")) { */
+/*         start_noncannon(); */
+/*         printf("\033[s\033[999;999H\033[6n\033[u"); */
+/*         ungetc('f', stdin); */
+/*         scanf("\033[%*u;%*uR"); */
+/*         char c; */
+/*         while (1) { */
+/*             c = getchar(); */
+/*             printf("%o\n", c); */
+/*         } */
+/*         end_noncannon(); */
+/*     } */
+/* } */

@@ -64,6 +64,15 @@ void event_init(Event *e,
         cpy_tags(e, tags, ntags);
 }
 
+void event_clone(Event *dest, Event src)
+{
+    *dest = src;
+    dest->subject = str_dup(src.subject);
+    dest->location = str_dup(src.location);
+    dest->details = str_dup(src.details);
+    cpy_tags(dest, (const char **)src.tags, src.ntags);
+}
+
 void event_destroy(Event *e)
 {
     free(e->subject);

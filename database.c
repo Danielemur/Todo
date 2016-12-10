@@ -203,15 +203,17 @@ static int get_event_index(Database *db, Event e)
     return -1;
 }
 
-void database_remove_event(Database *db, Event e)
+int database_remove_event(Database *db, Event e)
 {
     int i = get_event_index(db, e);
     if (i >= 0) {
         event_destroy(&db->events[i]);
         remove_element(db->events, &db->count, sizeof(db->events[0]), i);
+        db->modified = true;
+        return 0;
+    } else {
+        return -1;
     }
-
-    db->modified = true;
 }
 
 int database_query_date(Database *db, Date d, Event **events, size_t *size)

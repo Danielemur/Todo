@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "database.h"
+#include "stredit.h"
 
 /* Error messages */
 #define BAD_IN_FRMT_SPEC "%s \"%s\"\n"
@@ -276,45 +277,47 @@ static int get_ync(char *msg)
 }
 
 /* Prompts user for data on new event */
-static int new_event_prompt(Event *e)
+static int edit_event_prompt(Event *e)
 {
     size_t size = 0;
     char *line = NULL;
     char *remaining, *tok;
 
-    event_init(e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
-
     for (;;) {
+        free(line);
         if (TERM_COLOR)
             printf(BOLD BLU);
-        printf("Please enter a date:\n");
+        printf("Edit date:\n");
         if (TERM_COLOR)
             printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
+        char *date = date_to_str(e->date);
+        line = stredit(date);
+        free(date);
         remaining = line;
         Date d = get_date_from_toks(&remaining);
         if (date_is_null(d)) {
             if (remaining)
                 printf(BAD_IN_FRMT_SPEC, BAD_ARG, remaining);
         } else {
-            event_set_date(e, d);
-            break;
+            if (*remaining) {
+                fprintf(stderr, BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+            } else {
+                event_set_date(e, d);
+                break;
+            }
         }
     }
 
     for (;;) {
+        free(line);
         if (TERM_COLOR)
             printf(BOLD BLU);
-        printf("Please enter a time:\n");
+        printf("Edit time:\n");
         if (TERM_COLOR)
             printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
+        char *time = time_to_str(e->time);
+        line = stredit(time);
+        free(time);
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -322,17 +325,16 @@ static int new_event_prompt(Event *e)
         tok = next_tok(&remaining);
         Time t = time_from_str(tok);
 
-        if (*remaining) {
-            printf(BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
-            free(tok);
-            continue;
-        }
-
         if (!time_validate(t)) {
             printf(BAD_IN_FRMT_SPEC, INV_TIME, tok);
             free(tok);
             continue;
         } else {
+            if (*remaining) {
+                printf(BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                free(tok);
+                continue;
+            }
             event_set_time(e, t);
             free(tok);
             break;
@@ -340,15 +342,14 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
+        free(line);
         if (TERM_COLOR)
             printf(BOLD BLU);
-        printf("Please enter a Priority (Low, Medium, High, Urgent):\n");
+        printf("Edit priority (Low, Medium, High, Urgent):\n");
         if (TERM_COLOR)
             printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
+        const char *prio = priority_to_str(e->priority);
+        line = stredit(prio);
         remaining = line;
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
@@ -356,94 +357,80 @@ static int new_event_prompt(Event *e)
         tok = next_tok(&remaining);
         Priority p = priority_from_str(tok);
 
-        if (*remaining) {
-            printf(BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
-            free(tok);
-            continue;
-        }
-
         if (!priority_validate(p)) {
             printf(BAD_IN_FRMT_SPEC, INV_PRTY, tok);
             free(tok);
             continue;
         } else {
+            if (*remaining) {
+                printf(BAD_IN_FRMT_SPEC, EXTR_TXT, remaining);
+                free(tok);
+                continue;
+            }
             event_set_priority(e, p);
             free(tok);
             break;
         }
     }
 
-    for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
-        printf("Please enter a subject:\n");
-        if (TERM_COLOR)
-            printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
-        remaining = line;
-        for (; isspace(*remaining) && *remaining; remaining++);
-        if (!*remaining)
-            break;
-        event_set_subject(e, str_dup(remaining));
-        break;
-    }
+    free(line);
+    if (TERM_COLOR)
+        printf(BOLD BLU);
+    printf("Edit subject:\n");
+    if (TERM_COLOR)
+        printf(RESET);
+    line = stredit(e->subject);
+    remaining = line;
+    for (; isspace(*remaining) && *remaining; remaining++);
+    if (*remaining)
+        event_set_subject(e, remaining);
 
-    for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
-        printf("Please enter a location:\n");
-        if (TERM_COLOR)
-            printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
-        remaining = line;
-        for (; isspace(*remaining) && *remaining; remaining++);
-        if (!*remaining)
-            break;
-        event_set_location(e, str_dup(remaining));
-        break;
-    }
+    free(line);
+    if (TERM_COLOR)
+        printf(BOLD BLU);
+    printf("Edit location:\n");
+    if (TERM_COLOR)
+        printf(RESET);
+    line = stredit(e->location);
+    remaining = line;
+    for (; isspace(*remaining) && *remaining; remaining++);
+    if (*remaining)
+        event_set_location(e, remaining);
 
-    for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
-        printf("Please enter details:\n");
-        if (TERM_COLOR)
-            printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
-        remaining = line;
-        for (; isspace(*remaining) && *remaining; remaining++);
-        if (!*remaining)
-            break;
-        event_set_details(e, str_dup(remaining));
-        break;
-    }
+    free(line);
+    if (TERM_COLOR)
+        printf(BOLD BLU);
+    printf("Edit details:\n");
+    if (TERM_COLOR)
+        printf(RESET);
+    line = stredit(e->details);
+    remaining = line;
+    for (; isspace(*remaining) && *remaining; remaining++);
+    if (*remaining)
+        event_set_details(e, remaining);
 
-    for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
-        printf("Please enter a tag, or return if finished:\n");
-        if (TERM_COLOR)
-            printf(RESET);
-        if (getline(&line, &size, stdin) == -1)
-            FATAL("Failed to read from stdin!");
-        if (line[strlen(line) - 1] == '\n')
-            line[strlen(line) - 1] = '\0';
-        remaining = line;
-        for (; isspace(*remaining) && *remaining; remaining++);
-        if (!*remaining)
-            break;
-        event_add_tag(e, str_dup(remaining));
-    }
+    /* for (unsigned i = 0; i < e->ntags; i++) { */
+    /*     if (TERM_COLOR) */
+    /*         printf(BOLD BLU); */
+    /*     if (i < e->ntags - 1) */
+    /*         printf("Edit tag:\n"); */
+    /*     else */
+    /*         printf("Please enter a tag, or return if finished:\n"); */
+    /*     if (TERM_COLOR) */
+    /*         printf(RESET); */
+    /*     if (getline(&line, &size, stdin) == -1) */
+    /*         FATAL("Failed to read from stdin!"); */
+    /*     if (line[strlen(line) - 1] == '\n') */
+    /*         line[strlen(line) - 1] = '\0'; */
+    /*     remaining = line; */
+    /*     for (; isspace(*remaining) && *remaining; remaining++); */
+    /*     if (!*remaining) */
+    /*         break; */
+    /*     event_add_tag(e, str_dup(remaining)); */
+    /* } */
 
+    free(line);
+    
     return 0;
 }
 
@@ -518,7 +505,7 @@ static int new_event_prompt(Event *e)
     for (;;) {
         if (TERM_COLOR)
             printf(BOLD BLU);
-        printf("Please enter a Priority (Low, Medium, High, Urgent):\n");
+        printf("Please enter a priority (Low, Medium, High, Urgent):\n");
         if (TERM_COLOR)
             printf(RESET);
         if (getline(&line, &size, stdin) == -1)
@@ -560,7 +547,7 @@ static int new_event_prompt(Event *e)
     remaining = line;
     for (; isspace(*remaining) && *remaining; remaining++);
     if (*remaining)
-        event_set_subject(e, str_dup(remaining));
+        event_set_subject(e, remaining);
 
     if (TERM_COLOR)
         printf(BOLD BLU);
@@ -574,7 +561,7 @@ static int new_event_prompt(Event *e)
     remaining = line;
     for (; isspace(*remaining) && *remaining; remaining++);
     if (*remaining)
-    event_set_location(e, str_dup(remaining));
+    event_set_location(e, remaining);
 
     if (TERM_COLOR)
         printf(BOLD BLU);
@@ -588,7 +575,7 @@ static int new_event_prompt(Event *e)
     remaining = line;
     for (; isspace(*remaining) && *remaining; remaining++);
     if (*remaining)
-        event_set_details(e, str_dup(remaining));
+        event_set_details(e, remaining);
 
     for (;;) {
         if (TERM_COLOR)
@@ -604,7 +591,7 @@ static int new_event_prompt(Event *e)
         for (; isspace(*remaining) && *remaining; remaining++);
         if (!*remaining)
             break;
-        event_add_tag(e, str_dup(remaining));
+        event_add_tag(e, remaining);
     }
 
     free(line);
@@ -696,6 +683,23 @@ static void interactive_mode(Database *db, char **filepath)
                 continue;
             }
             date_print(get_current_date());
+        } else if (!strcmp(tok, "edit")) {
+            free(tok);
+
+            if (!*remaining) {
+                fprintf(stderr, "%s\n", RQRS_ARG);
+                continue;
+            }
+
+            Event old, new;
+            if (select_event(db, &remaining, &old) != -1) {
+                event_clone(&new, old);
+                edit_event_prompt(&new);
+                database_remove_event(db, old);
+                database_add_event(db, new);
+            }
+
+            continue;
         } else if (!strcmp(tok, "load")) {
             free(tok);
             tok = next_tok(&remaining);

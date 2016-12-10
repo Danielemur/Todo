@@ -26,6 +26,8 @@
 
 static char *str_dup(const char *s) //allocates new string
 {
+    if (!s)
+        return NULL;
     char *ret_str = malloc(strlen(s) + 1);
     if (!ret_str)
         return ret_str;
