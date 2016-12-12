@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <getopt.h>
+#include <sys/stat.h>
 
 #include "common.h"
 #include "database.h"
@@ -143,6 +144,33 @@ static Date get_date_from_toks(char **line)
         *line = start;
 
     return date;
+}
+
+static inline bool file_exists(const char *filename)
+{
+    struct stat s;
+    errno = 0;
+    return !(stat(filename, &s) == -1 && errno == ENOENT);
+}
+
+/* Saves database to file, renaming existing file to filepath~ */
+static int load(Database *db, char *filepath)
+{
+    if (!file_exists(filepath)) {
+        fclose(fopen(filepath, "w"));
+        database_init(db);
+    } else {
+        FILE *f = fopen(filepath, "r");
+        if (!f)
+            return -1;
+
+        if (database_load(db, f) == -1)
+            return -2;
+
+        fclose(f);
+    }
+
+    return 0;
 }
 
 /* Saves database to file, renaming existing file to filepath~ */
@@ -430,7 +458,7 @@ static int edit_event_prompt(Event *e)
     /* } */
 
     free(line);
-    
+
     return 0;
 }
 
@@ -738,24 +766,25 @@ static void interactive_mode(Database *db, char **filepath)
                 continue;
             }
 
-            FILE *f = fopen(tok, "r");
+            Database new_db;
 
-            if (!f) {
+            switch (load(&new_db, tok)) {
+            case 0 :
+                break;
+            case -1 :
                 fprintf(stderr, "Failed to open file \"%s\"\n", tok);
                 free(tok);
+                exit(EXIT_FAILURE);
+                break;
+            case -2 :
                 continue;
-            }
-
-            Database new_db;
-            if (database_load(&new_db, f) == -1) {
-                free(tok);
-                continue;
+            default:
+                FATAL("How'd this happen? Error on line %d", __LINE__);
             }
 
             database_destroy(db);
             *db = new_db;
             *filepath = tok;
-            fclose(f);
 
         } else if (!strcmp(tok, "new")) {
             free(tok);
@@ -914,17 +943,21 @@ int main(int argc, char **argv)
         }
     }
 
-
-
-    FILE *f = fopen(filepath, "r");
-
-    if (!f)
-        FATAL("Failed to open file \"%s\"\n", filepath);
-
     Database db;
-    database_load(&db, f);
 
-    fclose(f);
+    if (!file_exists(filepath)) {
+        fclose(fopen(filepath, "w"));
+        database_init(&db);
+    } else {
+        FILE *f = fopen(filepath, "r");
+        if (!f) {
+            FATAL("Failed to open file \"%s\"\n", filepath);
+        }
+
+        database_load(&db, f);
+
+        fclose(f);
+    }
 
     if (interactive)
         interactive_mode(&db, &filepath);
