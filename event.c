@@ -303,9 +303,8 @@ void event_add_tag(Event *e, const char *tag)
         unsigned i;
         for (i = 0; i < e->ntags && strcmp(e->tags[i], tag) < 0; i++);
         if (i == e->ntags || strcmp(e->tags[i], tag)) {
-            void *new_elem;
-            e->tags = add_element(e->tags, &e->ntags, sizeof(e->tags[0]), i, &new_elem);
-            *(char **)new_elem = str_dup(tag);
+            char *tag2 = str_dup(tag);
+            e->tags = add_element(e->tags, &e->ntags, sizeof(e->tags[0]), i, &tag2);
         }
     }
 }

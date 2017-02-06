@@ -187,10 +187,7 @@ void database_add_event(Database *db, Event e)
 {
     unsigned i;
     for (i = 0; i < db->count && event_sort_time(db->events[i], e) < 0; i++);
-    void *new_elem;
-    db->events = add_element(db->events, &db->count, sizeof(db->events[0]), i, &new_elem);
-    *(Event *)new_elem = e;
-
+    db->events = add_element(db->events, &db->count, sizeof(db->events[0]), i, &e);
     db->modified = true;
 }
 

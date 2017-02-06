@@ -22,9 +22,6 @@ static const char *BAD_ARG = "Bad argument";
 static const char *EXTR_TXT = "Extraneous text";
 static const char *RQRS_ARG = "Must provide argument";
 
-/* Boolean for colored output */
-extern int TERM_COLOR;
-
 static Date get_current_date()
 {
     time_t t = time(NULL);
@@ -313,11 +310,9 @@ static int edit_event_prompt(Event *e)
 
     for (;;) {
         free(line);
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Edit date:\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         char *date = date_to_str(e->date);
         line = stredit(date);
         free(date);
@@ -338,11 +333,9 @@ static int edit_event_prompt(Event *e)
 
     for (;;) {
         free(line);
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Edit time:\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         char *time = time_to_str(e->time);
         line = stredit(time);
         free(time);
@@ -371,11 +364,9 @@ static int edit_event_prompt(Event *e)
 
     for (;;) {
         free(line);
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Edit priority (Low, Medium, High, Urgent):\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         const char *prio = priority_to_str(e->priority);
         line = stredit(prio);
         remaining = line;
@@ -402,11 +393,9 @@ static int edit_event_prompt(Event *e)
     }
 
     free(line);
-    if (TERM_COLOR)
-        printf(BOLD BLU);
+    PRTESC(BOLD BLU);
     printf("Edit subject:\n");
-    if (TERM_COLOR)
-        printf(RESET);
+    PRTESC(RESET);
     line = stredit(e->subject);
     remaining = line;
     for (; isspace(*remaining) && *remaining; remaining++);
@@ -414,11 +403,9 @@ static int edit_event_prompt(Event *e)
         event_set_subject(e, remaining);
 
     free(line);
-    if (TERM_COLOR)
-        printf(BOLD BLU);
+    PRTESC(BOLD BLU);
     printf("Edit location:\n");
-    if (TERM_COLOR)
-        printf(RESET);
+    PRTESC(RESET);
     line = stredit(e->location);
     remaining = line;
     for (; isspace(*remaining) && *remaining; remaining++);
@@ -426,11 +413,9 @@ static int edit_event_prompt(Event *e)
         event_set_location(e, remaining);
 
     free(line);
-    if (TERM_COLOR)
-        printf(BOLD BLU);
+    PRTESC(BOLD BLU);
     printf("Edit details:\n");
-    if (TERM_COLOR)
-        printf(RESET);
+    PRTESC(RESET);
     line = stredit(e->details);
     remaining = line;
     for (; isspace(*remaining) && *remaining; remaining++);
@@ -438,14 +423,12 @@ static int edit_event_prompt(Event *e)
         event_set_details(e, remaining);
 
     /* for (unsigned i = 0; i < e->ntags; i++) { */
-    /*     if (TERM_COLOR) */
-    /*         printf(BOLD BLU); */
+    /*     PRTESC(BOLD BLU); */
     /*     if (i < e->ntags - 1) */
     /*         printf("Edit tag:\n"); */
     /*     else */
     /*         printf("Please enter a tag, or return if finished:\n"); */
-    /*     if (TERM_COLOR) */
-    /*         printf(RESET); */
+    /*     PRTESC(RESET); */
     /*     if (getline(&line, &size, stdin) == -1) */
     /*         FATAL("Failed to read from stdin!"); */
     /*     if (line[strlen(line) - 1] == '\n') */
@@ -472,11 +455,9 @@ static int new_event_prompt(Event *e)
     event_init(e, NULL_DATE, NULL_TIME, -1, NULL, NULL, NULL, NULL, 0);
 
     for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Please enter a date:\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
         if (line[strlen(line) - 1] == '\n')
@@ -498,11 +479,9 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Please enter a time:\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
         if (line[strlen(line) - 1] == '\n')
@@ -531,11 +510,9 @@ static int new_event_prompt(Event *e)
     }
 
     for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Please enter a priority (Low, Medium, High, Urgent):\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
         if (line[strlen(line) - 1] == '\n')
@@ -563,11 +540,9 @@ static int new_event_prompt(Event *e)
         }
     }
 
-    if (TERM_COLOR)
-        printf(BOLD BLU);
+    PRTESC(BOLD BLU);
     printf("Please enter a subject:\n");
-    if (TERM_COLOR)
-        printf(RESET);
+    PRTESC(RESET);
     if (getline(&line, &size, stdin) == -1)
         FATAL("Failed to read from stdin!");
     if (line[strlen(line) - 1] == '\n')
@@ -577,11 +552,9 @@ static int new_event_prompt(Event *e)
     if (*remaining)
         event_set_subject(e, remaining);
 
-    if (TERM_COLOR)
-        printf(BOLD BLU);
+    PRTESC(BOLD BLU);
     printf("Please enter a location:\n");
-    if (TERM_COLOR)
-        printf(RESET);
+    PRTESC(RESET);
     if (getline(&line, &size, stdin) == -1)
         FATAL("Failed to read from stdin!");
     if (line[strlen(line) - 1] == '\n')
@@ -591,11 +564,9 @@ static int new_event_prompt(Event *e)
     if (*remaining)
     event_set_location(e, remaining);
 
-    if (TERM_COLOR)
-        printf(BOLD BLU);
+    PRTESC(BOLD BLU);
     printf("Please enter details:\n");
-    if (TERM_COLOR)
-        printf(RESET);
+    PRTESC(RESET);
     if (getline(&line, &size, stdin) == -1)
         FATAL("Failed to read from stdin!");
     if (line[strlen(line) - 1] == '\n')
@@ -606,11 +577,9 @@ static int new_event_prompt(Event *e)
         event_set_details(e, remaining);
 
     for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
         printf("Please enter a tag, or return if finished:\n");
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
         if (line[strlen(line) - 1] == '\n')
@@ -636,8 +605,7 @@ static void interactive_mode(Database *db, char **filepath)
     Event *events;
 
     for (;;) {
-        if (TERM_COLOR)
-            printf(BOLD BLU);
+        PRTESC(BOLD BLU);
 
         printf("> ");
         fflush(stdout);
@@ -645,8 +613,7 @@ static void interactive_mode(Database *db, char **filepath)
         if (getline(&line, &size, stdin) == -1)
             FATAL("Failed to read from stdin!");
 
-        if (TERM_COLOR)
-            printf(RESET);
+        PRTESC(RESET);
 
         if (line[strlen(line) - 1] == '\n')
             line[strlen(line) - 1] = '\0';

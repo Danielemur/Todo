@@ -2,8 +2,11 @@ CFLAGS = -g3 -std=c11
 
 all : todo
 
-todo : todo.c database.o csv.o event.o date.o stredit.o termanip.o
+todo : todo.c database.o common.o csv.o event.o date.o stredit.o termanip.o
 	$(CC) $(CFLAGS) $^ -o $@
+
+common.o : common.c common.h
+	$(CC) $(CFLAGS) -c $<
 
 csv.o : csv.c csv.h common.h
 	$(CC) $(CFLAGS) -c $<
